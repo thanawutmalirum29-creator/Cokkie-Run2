@@ -968,6 +968,51 @@ for (let i = 0; i < 55; i++) embers.push({
 });
 let selChar = 'choco';
 let selMap  = 'bakery';
+let currentRunToken = null; // ได้จาก server ตอนเริ่มเล่น ใช้ยืนยันตอนส่งคะแนน
+
+function getPlayerName() {
+  let name = localStorage.getItem('cr_playerName');
+  if (!name) {
+    name = (prompt('ตั้งชื่อผู้เล่นสำหรับ leaderboard:', 'SonicGamer501') || 'SonicGamer501').trim().slice(0, 24) || 'SonicGamer501';
+    localStorage.setItem('cr_playerName', name);
+  }
+  const nameEl = document.getElementById('lbyPlayerName');
+  if (nameEl) nameEl.textContent = name;
+  return name;
+}
+
+// เริ่ม run บน server (ขอ token + ให้ server บันทึกเวลาเริ่มของจริง)
+async function startRunOnServer(charId, mapId) {
+  currentRunToken = null;
+  try {
+    const res = await fetch('/api/run/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ charId, mapId }),
+    });
+    if (!res.ok) throw new Error('bad status');
+    const data = await res.json();
+    currentRunToken = data.token;
+  } catch (e) {
+    console.warn('เริ่ม run กับ server ไม่สำเร็จ (เล่นได้ปกติ แต่คะแนนจะไม่ขึ้น leaderboard)', e);
+  }
+}
+
+// ส่งคะแนนจบ run ขึ้น leaderboard (ถ้ามี token ที่ใช้ได้)
+async function submitRunScore(finalScore) {
+  if (!currentRunToken) return;
+  const token = currentRunToken;
+  currentRunToken = null; // ใช้ได้ครั้งเดียว กันยิงซ้ำจาก client เอง
+  try {
+    await fetch('/api/run/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token, score: Math.floor(finalScore), playerName: getPlayerName() }),
+    });
+  } catch (e) {
+    console.warn('ส่งคะแนนขึ้น leaderboard ไม่สำเร็จ', e);
+  }
+}
 
 // ══════════════════════════════════════════════════════════
 // สลับฉาก (ไม่เปลี่ยนหน้า HTML)
@@ -1020,6 +1065,7 @@ function startLoadingThenGame(charId, mapId) {
   MAP_OBJ  = MAPS.find(m => m.id === mapId)   || MAPS[0];
   CHAR = toCharState(CHAR_OBJ);
   MAP  = toMapState(MAP_OBJ);
+  startRunOnServer(CHAR_OBJ.id, MAP_OBJ.id); // ขอ token จาก server (ไม่ต้องรอ ไม่บล็อกการเล่น)
 
   lobbyScreenEl.style.display = 'none';
   gameScreenEl.style.display = 'none';
@@ -1046,6 +1092,7 @@ fetchSkills().then(s => {
   hp = CHAR.maxHp;
   if (gameScreenEl.style.display !== 'none') updateOverlayDesc();
 });
+getPlayerName(); // โชว์ชื่อผู้เล่นในล็อบบี้ (ขอครั้งแรกถ้ายังไม่ตั้ง)
 
 // ══════════════════════════════════════════════════════════
 // CANVAS RESIZE
@@ -2025,6 +2072,7 @@ function die() {
   state = 'dead';
   pauseBtnEl.style.display = 'none';
   ctx.clearRect(0,0,GW,GH); drawBg(); obs.forEach(drawObs); jels.forEach(drawJel); pots.forEach(drawPot); items.forEach(drawItem); drawCookie();
+  submitRunScore(score);
   setTimeout(showDead, 700);
 }
 
