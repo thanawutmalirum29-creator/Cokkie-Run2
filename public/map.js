@@ -454,3 +454,317 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
   plan.sort((a, b) => a.worldX - b.worldX);
   return plan;
 }
+
+// ══════════════════════════════════════════════════════════
+// ฉากหลัง + อุปสรรค + ลาย thumbnail เฉพาะของแต่ละแมพ
+// (ย้ายมาจาก index.html ให้รวมโค้ด "วาดแมพ" ไว้ที่นี่ทั้งหมด)
+// ══════════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════════
+// ฉากหลังเฉพาะของแต่ละแมพ — วาดระหว่างฟ้ากับพื้น
+// parFar = parallax ช้า (ฉากไกล), parMid = parallax กลาง (ฉากใกล้พื้น)
+// ══════════════════════════════════════════════════════════
+function drawMapScenery(id, parFar, parMid) {
+  switch (id) {
+    case 'bakery':   return drawSceneryBakery(parFar, parMid);
+    case 'candy':    return drawSceneryCandy(parFar, parMid);
+    case 'icecream': return drawSceneryIcecream(parFar, parMid);
+    case 'forest':   return drawSceneryForest(parFar, parMid);
+    case 'lava':     return drawSceneryLava(parFar, parMid);
+    case 'space':    return drawSceneryStars(parFar, parMid);
+    default:         return drawSceneryBakery(parFar, parMid);
+  }
+}
+
+// ── เบเกอรี่: หน้าต่างร้านอุ่นๆ + ชั้นวางขนมปังลอยไกลๆ ──
+function drawSceneryBakery(parFar, parMid) {
+  for (let i = -1; i < 4; i++) {
+    const bx = i * 220 - parFar;
+    ctx.fillStyle = 'rgba(255,180,90,0.10)';
+    rrectPath(ctx, bx, 70, 90, 110, 8); ctx.fill();
+    ctx.fillStyle = 'rgba(255,210,140,0.22)';
+    rrectPath(ctx, bx + 10, 85, 70, 40, 4); ctx.fill();
+  }
+  for (let i = -1; i < 6; i++) {
+    const sx = i * 140 - parMid;
+    ctx.fillStyle = 'rgba(120,60,20,0.35)';
+    ctx.fillRect(sx, GROUND - 60, 60, 6);
+    ctx.fillStyle = 'rgba(210,150,80,0.4)';
+    ctx.beginPath(); ctx.ellipse(sx + 15, GROUND - 70, 12, 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(sx + 42, GROUND - 70, 12, 9, 0, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── แลนด์ขนม: เขาลูกอม + ลอลลิป็อปสองข้างทาง ──
+function drawSceneryCandy(parFar, parMid) {
+  for (let i = -1; i < 4; i++) {
+    const hx = i * 260 - parFar * 0.7;
+    ctx.fillStyle = 'rgba(255,160,210,0.18)';
+    ctx.beginPath(); ctx.ellipse(hx + 120, GROUND - 4, 140, 70, 0, Math.PI, 0); ctx.fill();
+  }
+  for (let i = -1; i < 6; i++) {
+    const lx = i * 150 + 40 - parMid;
+    const ly = GROUND - 78;
+    ctx.strokeStyle = 'rgba(255,255,255,0.35)'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(lx, GROUND - 4); ctx.lineTo(lx, ly); ctx.stroke();
+    const grd = ctx.createRadialGradient(lx, ly, 2, lx, ly, 16);
+    grd.addColorStop(0, '#fff'); grd.addColorStop(0.6, '#ff7fb0'); grd.addColorStop(1, '#ff2f80aa');
+    ctx.fillStyle = grd;
+    ctx.beginPath(); ctx.arc(lx, ly, 16, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── ไอศกรีม: ภูเขาน้ำแข็ง + หิมะปลิว ──
+function drawSceneryIcecream(parFar, parMid) {
+  for (let i = -1; i < 4; i++) {
+    const mx = i * 230 - parFar * 0.6;
+    ctx.fillStyle = 'rgba(220,250,255,0.16)';
+    ctx.beginPath();
+    ctx.moveTo(mx, GROUND); ctx.lineTo(mx + 60, GROUND - 95); ctx.lineTo(mx + 120, GROUND);
+    ctx.closePath(); ctx.fill();
+  }
+  for (let i = -1; i < 6; i++) {
+    const cx2 = i * 140 - parMid;
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.beginPath(); ctx.moveTo(cx2, GROUND - 4); ctx.lineTo(cx2 + 7, GROUND - 26); ctx.lineTo(cx2 + 14, GROUND - 4); ctx.closePath(); ctx.fill();
+  }
+  for (let i = 0; i < 22; i++) {
+    const sx = (i * 173 + frame * 0.6) % GW;
+    const sy = (i * 91 + frame * 0.4) % GROUND;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(sx, sy, 1.6, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── ป่าคุกกี้: ต้นไม้สองชั้น + หิ่งห้อย ──
+function drawSceneryForest(parFar, parMid) {
+  for (let i = -1; i < 5; i++) {
+    const tx = i * 170 - parFar;
+    ctx.fillStyle = 'rgba(20,60,20,0.30)';
+    ctx.beginPath(); ctx.moveTo(tx, GROUND - 20); ctx.lineTo(tx + 26, GROUND - 130); ctx.lineTo(tx + 52, GROUND - 20); ctx.closePath(); ctx.fill();
+  }
+  for (let i = -1; i < 7; i++) {
+    const tx = i * 110 - parMid;
+    ctx.fillStyle = 'rgba(30,90,25,0.5)';
+    ctx.beginPath(); ctx.moveTo(tx, GROUND - 2); ctx.lineTo(tx + 18, GROUND - 80); ctx.lineTo(tx + 36, GROUND - 2); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(70,45,15,0.5)'; ctx.fillRect(tx + 14, GROUND - 12, 8, 12);
+  }
+  for (let i = 0; i < 10; i++) {
+    const fx = (i * 233 + frame * 0.8) % GW;
+    const fy = GROUND - 40 - (Math.sin(frame * 0.04 + i) * 20 + 20);
+    ctx.fillStyle = `rgba(220,255,120,${0.3 + 0.4 * Math.sin(frame * 0.1 + i)})`;
+    ctx.beginPath(); ctx.arc(fx, fy, 2, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── ภูเขาไฟ: สันเขาดำ + ลาวาไหล + ประกายไฟ ──
+function drawSceneryLava(parFar, parMid) {
+  for (let i = -1; i < 4; i++) {
+    const mx = i * 240 - parFar * 0.6;
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(mx, GROUND); ctx.lineTo(mx + 70, GROUND - 110); ctx.lineTo(mx + 140, GROUND);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = 'rgba(255,80,0,0.5)';
+    ctx.beginPath(); ctx.moveTo(mx + 55, GROUND - 88); ctx.lineTo(mx + 70, GROUND - 110); ctx.lineTo(mx + 85, GROUND - 88); ctx.closePath(); ctx.fill();
+  }
+  for (let i = -1; i < 6; i++) {
+    const rx = i * 130 - parMid;
+    ctx.fillStyle = 'rgba(10,5,5,0.55)';
+    ctx.beginPath(); ctx.moveTo(rx, GROUND); ctx.lineTo(rx + 14, GROUND - 28); ctx.lineTo(rx + 28, GROUND); ctx.closePath(); ctx.fill();
+  }
+  for (let i = 0; i < 16; i++) {
+    const ex = (i * 191 + frame * 1.1) % GW;
+    const ey = GROUND - ((frame * 1.4 + i * 37) % (GROUND - 40));
+    ctx.fillStyle = `rgba(255,${120 + (i % 3) * 40},0,${0.5 - ey / (GROUND * 2)})`;
+    ctx.beginPath(); ctx.arc(ex, ey, 1.8, 0, Math.PI * 2); ctx.fill();
+  }
+}
+
+// ── อวกาศ: ดาวระยิบระยับ + ดาวเคราะห์ลอย ──
+function drawSceneryStars(parFar, parMid) {
+  for (let i = 0; i < 40; i++) {
+    const sx = ((i * 137 - parFar * 0.3) % (GW + 40) + GW + 40) % (GW + 40) - 20;
+    const sy = (i * 53 + 11) % (GROUND * 0.75);
+    const tw = 0.3 + 0.4 * Math.abs(Math.sin(frame * 0.05 + i));
+    ctx.fillStyle = `rgba(220,220,255,${tw})`;
+    ctx.beginPath(); ctx.arc(sx, sy, 0.9 + (i % 3) * 0.5, 0, Math.PI * 2); ctx.fill();
+  }
+  const planets = [
+    { x: 0.18, y: 60, r: 22, col: '#a06bff', ring: true },
+    { x: 0.62, y: 95, r: 13, col: '#ff7f7f', ring: false },
+    { x: 0.85, y: 45, r: 9,  col: '#7fd0ff', ring: false },
+  ];
+  planets.forEach((p, idx) => {
+    const px = (((p.x * GW) - parMid * 0.4) % (GW + 80) + GW + 80) % (GW + 80) - 40;
+    const gr = ctx.createRadialGradient(px - p.r * 0.3, p.y - p.r * 0.3, 1, px, p.y, p.r);
+    gr.addColorStop(0, p.col + 'ee'); gr.addColorStop(1, p.col + '33');
+    if (p.ring) {
+      ctx.strokeStyle = p.col + '88'; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.ellipse(px, p.y, p.r * 1.7, p.r * 0.5, -0.3, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.fillStyle = gr;
+    ctx.beginPath(); ctx.arc(px, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+  });
+}
+
+
+function drawObs(o) {
+  ctx.save();
+  const pal = (MAP.obsPalette) || { wood:['#9e7a50','#5c3d1e'], line:'#3d2000', pattern:'wood' };
+  const [cA, cB] = pal.wood;
+
+  if (o.type === 'air') {
+    // ── อุปสรรคลอย: รูปทรงต่างกันตามแมพ ──
+    const cx = o.x + o.w / 2, cy = o.y + o.h / 2;
+    const og = ctx.createRadialGradient(cx, cy, 2, cx, cy, o.w / 2);
+    og.addColorStop(0, MAP.acc + 'ff'); og.addColorStop(0.5, MAP.acc + '99'); og.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = og;
+    switch (pal.pattern) {
+      case 'ice': // เกล็ดน้ำแข็งลอย
+        ctx.save(); ctx.translate(cx, cy);
+        for (let i = 0; i < 6; i++) {
+          ctx.rotate(Math.PI / 3);
+          ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -o.h / 2); ctx.strokeStyle = '#cdf3ff'; ctx.lineWidth = 2; ctx.stroke();
+        }
+        ctx.restore();
+        ctx.beginPath(); ctx.ellipse(cx, cy, o.w / 2, o.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'rock': // ลูกไฟลอย
+        ctx.beginPath(); ctx.ellipse(cx, cy, o.w / 2, o.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#fff3c0aa';
+        ctx.beginPath(); ctx.ellipse(cx, cy - 2, o.w / 4, o.h / 4, 0, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'metal': // อุกกาบาตเล็ก
+        ctx.beginPath(); ctx.ellipse(cx, cy, o.w / 2, o.h / 2, frame * 0.02, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = 'rgba(0,0,0,0.25)';
+        ctx.beginPath(); ctx.arc(cx - 3, cy - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'bark': // ใบไม้ร่วง
+        ctx.beginPath(); ctx.ellipse(cx, cy, o.w / 2, o.h / 1.6, Math.sin(frame * 0.05), 0, Math.PI * 2); ctx.fill();
+        break;
+      case 'candy': // ลูกอมลอย
+        ctx.beginPath(); ctx.ellipse(cx, cy, o.w / 2, o.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffffaa'; ctx.lineWidth = 1.5;
+        ctx.beginPath(); ctx.arc(cx, cy, o.w / 3, 0, Math.PI * 1.3); ctx.stroke();
+        break;
+      default: // bakery — เมฆแป้ง
+        ctx.beginPath(); ctx.ellipse(cx, cy, o.w / 2, o.h / 2, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+    return;
+  }
+
+  // ── อุปสรรคพื้น: ลายเฉพาะตามแมพ ──
+  const wg = ctx.createLinearGradient(o.x, o.y, o.x + o.w, o.y + o.h);
+  wg.addColorStop(0, cA); wg.addColorStop(1, cB);
+  ctx.fillStyle = wg;
+  rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.fill();
+  ctx.strokeStyle = pal.line; ctx.lineWidth = 1.5; ctx.stroke();
+
+  switch (pal.pattern) {
+    case 'candy': // ขนมหวาน — ลายแถบทแยงสีชมพู/ขาว
+      ctx.save(); rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.clip();
+      ctx.strokeStyle = '#ffffffcc'; ctx.lineWidth = 6;
+      for (let d = -o.h; d < o.w + o.h; d += 12) {
+        ctx.beginPath(); ctx.moveTo(o.x + d, o.y + o.h); ctx.lineTo(o.x + d + o.h, o.y); ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    case 'ice': // ไอศกรีม — เหลี่ยมน้ำแข็งระยิบระยับ
+      ctx.save(); rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.clip();
+      ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1;
+      for (let i = 0; i < 5; i++) {
+        const fx = o.x + Math.random() * o.w, fy = o.y + Math.random() * o.h;
+        ctx.beginPath(); ctx.moveTo(fx - 4, fy); ctx.lineTo(fx + 4, fy); ctx.moveTo(fx, fy - 4); ctx.lineTo(fx, fy + 4); ctx.stroke();
+      }
+      ctx.restore();
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + o.w * 0.4, o.y); ctx.lineTo(o.x, o.y + o.h); ctx.closePath(); ctx.fill();
+      break;
+    case 'bark': // ป่าคุกกี้ — ลายไม้/เปลือกไม้โค้ง
+      ctx.save(); rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.clip();
+      ctx.strokeStyle = 'rgba(20,10,0,0.35)'; ctx.lineWidth = 1.4;
+      for (let r = o.y + 10; r < o.y + o.h; r += 11) {
+        ctx.beginPath();
+        ctx.moveTo(o.x, r);
+        ctx.quadraticCurveTo(o.x + o.w / 2, r + 5, o.x + o.w, r);
+        ctx.stroke();
+      }
+      ctx.restore();
+      break;
+    case 'rock': // ภูเขาไฟ — หินดำมีรอยแตกเรืองแสง
+      ctx.save(); rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.clip();
+      ctx.strokeStyle = '#ff5722'; ctx.lineWidth = 1.3; ctx.globalAlpha = 0.7 + 0.3 * Math.sin(frame * 0.15);
+      ctx.beginPath();
+      ctx.moveTo(o.x + o.w * 0.2, o.y); ctx.lineTo(o.x + o.w * 0.5, o.y + o.h * 0.4);
+      ctx.lineTo(o.x + o.w * 0.3, o.y + o.h * 0.6); ctx.lineTo(o.x + o.w * 0.7, o.y + o.h);
+      ctx.stroke();
+      ctx.restore(); ctx.globalAlpha = 1;
+      break;
+    case 'metal': // อวกาศ — แผ่นโลหะมีหมุด
+      ctx.save(); rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.clip();
+      ctx.fillStyle = 'rgba(0,0,0,0.35)';
+      for (let r = o.y + 8; r < o.y + o.h - 4; r += 14) {
+        ctx.beginPath(); ctx.arc(o.x + 7, r, 2, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(o.x + o.w - 7, r, 2, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.strokeStyle = 'rgba(180,180,255,0.25)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(o.x, o.y + o.h * 0.5); ctx.lineTo(o.x + o.w, o.y + o.h * 0.5); ctx.stroke();
+      ctx.restore();
+      break;
+    default: // bakery — ไม้แผ่นลายเส้นแนวนอน + เส้นกลาง
+      for (let r = o.y + 13; r < o.y + o.h; r += 14) {
+        ctx.strokeStyle = 'rgba(40,15,0,0.3)'; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(o.x, r); ctx.lineTo(o.x + o.w, r); ctx.stroke();
+      }
+      ctx.beginPath(); ctx.moveTo(o.x + o.w / 2, o.y); ctx.lineTo(o.x + o.w / 2, o.y + o.h); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+// ── ลายเฉพาะของแต่ละแมพ ใช้ทั้งใน preview เล็กและ showcase ──
+function drawMapMotif(c, id, W, H, accent) {
+  const gY = H * 0.65;
+  switch (id) {
+    case 'bakery':
+      c.fillStyle = accent + '33';
+      c.beginPath(); c.ellipse(W * 0.3, gY - 9, 9, 7, 0, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.ellipse(W * 0.75, gY - 7, 7, 5, 0, 0, Math.PI * 2); c.fill();
+      break;
+    case 'candy':
+      [0.25, 0.55, 0.82].forEach(fx => {
+        c.strokeStyle = '#ffffff66'; c.lineWidth = 2;
+        c.beginPath(); c.moveTo(W * fx, gY); c.lineTo(W * fx, gY - 14); c.stroke();
+        c.fillStyle = '#ff8fc0'; c.beginPath(); c.arc(W * fx, gY - 14, 4.5, 0, Math.PI * 2); c.fill();
+      });
+      break;
+    case 'icecream':
+      c.fillStyle = 'rgba(255,255,255,0.3)';
+      c.beginPath(); c.moveTo(W * 0.15, gY); c.lineTo(W * 0.27, gY - 16); c.lineTo(W * 0.39, gY); c.closePath(); c.fill();
+      c.beginPath(); c.moveTo(W * 0.55, gY); c.lineTo(W * 0.65, gY - 11); c.lineTo(W * 0.75, gY); c.closePath(); c.fill();
+      break;
+    case 'forest':
+      [0.2, 0.45, 0.7, 0.9].forEach(fx => {
+        c.fillStyle = 'rgba(60,160,50,0.45)';
+        c.beginPath(); c.moveTo(W * fx, gY); c.lineTo(W * fx + 6, gY - 14); c.lineTo(W * fx + 12, gY); c.closePath(); c.fill();
+      });
+      break;
+    case 'lava':
+      c.fillStyle = 'rgba(0,0,0,0.4)';
+      c.beginPath(); c.moveTo(W * 0.2, gY); c.lineTo(W * 0.32, gY - 17); c.lineTo(W * 0.44, gY); c.closePath(); c.fill();
+      c.fillStyle = '#ff6a00aa';
+      c.beginPath(); c.arc(W * 0.7, gY - 6, 3, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(W * 0.8, gY - 12, 2, 0, Math.PI * 2); c.fill();
+      break;
+    case 'space':
+      c.fillStyle = '#a06bffcc';
+      c.beginPath(); c.arc(W * 0.25, H * 0.25, 5, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = '#a06bff88'; c.lineWidth = 1.5;
+      c.beginPath(); c.ellipse(W * 0.25, H * 0.25, 9, 3, -0.3, 0, Math.PI * 2); c.stroke();
+      for (let i = 0; i < 8; i++) {
+        c.fillStyle = 'rgba(255,255,255,0.5)';
+        c.beginPath(); c.arc((i * 23 + 6) % W, (i * 11 + 4) % (H * 0.5), 0.8, 0, Math.PI * 2); c.fill();
+      }
+      break;
+  }
+}

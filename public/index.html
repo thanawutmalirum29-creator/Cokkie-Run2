@@ -776,7 +776,7 @@ const JUMP1 = -13.5, JUMP2 = -10.5, MAX_JUMPS = 2, SCORE_MULT = 1.0;
 
 // ── ตัวละคร/แมพปัจจุบัน (เปลี่ยนใหม่ได้ทุกครั้งที่กด "เริ่มวิ่ง!" จากล็อบบี้) ──
 function toCharState(o) { return { id:o.id, name:o.name, body:o.bodyColor, chip:o.chipColor, eye:o.eyeColor, bonus:o.bonus, maxHp:o.maxHp }; }
-function toMapState(o)  { return { id:o.id, name:o.name, sky:o.sky, ground:o.ground, acc:o.accent, speed:o.speed||5, obsInterval:o.obsInterval||95 }; }
+function toMapState(o)  { return { id:o.id, name:o.name, sky:o.sky, ground:o.ground, acc:o.accent, speed:o.speed||5, obsInterval:o.obsInterval||95, obsPalette:o.obsPalette||{wood:['#9e7a50','#5c3d1e'],line:'#3d2000',pattern:'wood'} }; }
 let CHAR_OBJ = CHARS[0];
 let MAP_OBJ  = MAPS[0];
 let CHAR = toCharState(CHAR_OBJ);
@@ -1040,15 +1040,9 @@ function drawBg() {
   sky.addColorStop(0, MAP.sky[0]); sky.addColorStop(0.6, MAP.sky[1]); sky.addColorStop(1, MAP.sky[2]);
   ctx.fillStyle = sky; ctx.fillRect(0, 0, GW, GH);
 
-  if (MAP_OBJ.id === 'space' || MAP_OBJ.id === 'lava') {
-    for (let i = 0; i < 30; i++) {
-      const sx = ((i * 137 + frame * 0.05) % GW), sy = ((i * 97 + 13) % GH * 0.6);
-      ctx.fillStyle = MAP_OBJ.id === 'space'
-        ? `rgba(200,200,255,${0.3 + 0.4 * (i % 3 / 3)})`
-        : `rgba(255,100,0,${0.2 + 0.3 * (i % 3 / 3)})`;
-      ctx.beginPath(); ctx.arc(sx, sy, 0.8 + i % 2, 0, Math.PI * 2); ctx.fill();
-    }
-  }
+  const parFar  = (frame * speed * 0.05) % (GW + 200);
+  const parMid  = (frame * speed * 0.12) % (GW + 200);
+  drawMapScenery(MAP_OBJ.id, parFar, parMid);
 
   const off = (frame * speed * 0.18) % GW;
   clouds.forEach(cl => {
@@ -1153,27 +1147,6 @@ function rrectPath(c, x, y, w, h, r) {
   c.closePath();
 }
 
-function drawObs(o) {
-  ctx.save();
-  if (o.type === 'air') {
-    const og = ctx.createRadialGradient(o.x+o.w/2, o.y+o.h/2, 2, o.x+o.w/2, o.y+o.h/2, o.w/2);
-    og.addColorStop(0, MAP.acc+'ff'); og.addColorStop(0.5, MAP.acc+'99'); og.addColorStop(1,'rgba(0,0,0,0)');
-    ctx.fillStyle = og;
-    ctx.beginPath(); ctx.ellipse(o.x+o.w/2, o.y+o.h/2, o.w/2, o.h/2, 0, 0, Math.PI*2); ctx.fill();
-  } else {
-    const wg = ctx.createLinearGradient(o.x, o.y, o.x+o.w, o.y+o.h);
-    wg.addColorStop(0,'#9e7a50'); wg.addColorStop(1,'#5c3d1e');
-    ctx.fillStyle = wg;
-    rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.fill();
-    ctx.strokeStyle = '#3d2000'; ctx.lineWidth = 1.5; ctx.stroke();
-    for (let r = o.y+13; r < o.y+o.h; r += 14) {
-      ctx.strokeStyle = 'rgba(40,15,0,0.3)'; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(o.x, r); ctx.lineTo(o.x+o.w, r); ctx.stroke();
-    }
-    ctx.beginPath(); ctx.moveTo(o.x+o.w/2, o.y); ctx.lineTo(o.x+o.w/2, o.y+o.h); ctx.stroke();
-  }
-  ctx.restore();
-}
 
 function drawJel(j) {
   if (j.done) return;
@@ -1557,15 +1530,13 @@ function drawMapPreview(cv, map) {
   const sg = c.createLinearGradient(0, 0, 0, H);
   sg.addColorStop(0, map.sky[0]); sg.addColorStop(0.6, map.sky[1]); sg.addColorStop(1, map.sky[2]);
   c.fillStyle = sg; c.fillRect(0, 0, W, H);
+  drawMapMotif(c, map.id, W, H, map.accent);
   const gg = c.createLinearGradient(0, H * 0.65, 0, H);
   gg.addColorStop(0, map.ground[0]); gg.addColorStop(1, map.ground[1]);
   c.fillStyle = gg; c.fillRect(0, H * 0.65, W, H * 0.35);
   c.fillStyle = map.accent + '88'; c.fillRect(0, H * 0.65, W, 2);
-  c.fillStyle = map.accent + '66';
-  rrectPath(c, W * 0.7, H * 0.45, 7, H * 0.2, 2); c.fill();
-  c.fillStyle = map.accent + '22';
-  c.beginPath(); c.ellipse(W * 0.5, H * 0.3, W * 0.3, H * 0.15, 0, 0, Math.PI * 2); c.fill();
 }
+
 
 // ══════════════════════════════════════════════════════════
 // LOBBY — BUILD UI (CHARS / MAPS จาก gameData.js)
@@ -1624,19 +1595,17 @@ function drawMapShowcase(mp) {
   const sg = c.createLinearGradient(0, 0, 0, H);
   sg.addColorStop(0, mp.sky[0]); sg.addColorStop(0.6, mp.sky[1]); sg.addColorStop(1, mp.sky[2]);
   c.fillStyle = sg; c.fillRect(0, 0, W, H);
-  // clouds
-  c.fillStyle = 'rgba(255,255,255,0.08)';
-  [[W*0.2,H*0.25,28,10],[W*0.6,H*0.18,40,14],[W*0.85,H*0.3,22,8]].forEach(([x,y,rw,rh])=>{
-    c.beginPath(); c.ellipse(x,y,rw,rh,0,0,Math.PI*2); c.fill();
-  });
+  drawMapMotif(c, mp.id, W, H, mp.accent);
   const gg = c.createLinearGradient(0, H * 0.62, 0, H);
   gg.addColorStop(0, mp.ground[0]); gg.addColorStop(1, mp.ground[1]);
   c.fillStyle = gg; c.fillRect(0, H * 0.62, W, H * 0.38);
   c.fillStyle = mp.accent + '99'; c.fillRect(0, H * 0.62, W, 2);
-  // obstacle preview
-  c.fillStyle = mp.accent + '88';
+  // อุปสรรคตัวอย่างตามสี/ลายของแมพ
+  const pal = mp.obsPalette || { wood:['#caa15a','#7a4a1e'] };
+  c.fillStyle = pal.wood[0];
   const rrp = (x,y,w,h,r) => { c.beginPath(); c.moveTo(x+r,y); c.lineTo(x+w-r,y); c.quadraticCurveTo(x+w,y,x+w,y+r); c.lineTo(x+w,y+h-r); c.quadraticCurveTo(x+w,y+h,x+w-r,y+h); c.lineTo(x+r,y+h); c.quadraticCurveTo(x,y+h,x,y+h-r); c.lineTo(x,y+r); c.quadraticCurveTo(x,y,x+r,y); c.closePath(); };
   rrp(W*0.55, H*0.38, 10, H*0.24, 2); c.fill();
+  c.fillStyle = pal.wood[1];
   rrp(W*0.75, H*0.30, 8,  H*0.32, 2); c.fill();
 }
 
