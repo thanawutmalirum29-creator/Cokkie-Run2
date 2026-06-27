@@ -524,10 +524,10 @@ html, body {
   border:1.5px solid rgba(180,120,255,0.35);
   border-bottom:none;
   border-radius:22px 22px 0 0;
-  padding:0 0 16px;
+  padding:0 0 env(safe-area-inset-bottom,8px);
   animation:modalSlideUp 0.25s cubic-bezier(.2,.8,.2,1);
   box-shadow:0 -8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
-  max-height:72vh; display:flex; flex-direction:column;
+  max-height:85vh; display:flex; flex-direction:column;
 }
 .lby-modal-handle {
   width:40px; height:4px; background:rgba(255,255,255,0.2);
@@ -637,12 +637,7 @@ html, body {
   font-size:9px; color:#ffb74d; margin-top:2px;
 }
 
-/* ── Selected readout above PLAY! ── */
-#lbyReadout {
-  display:flex; align-items:center; justify-content:space-between;
-  gap:6px; padding:4px 8px 0;
-  position:relative; z-index:10;
-}
+/* ── Selected readout chip styles (ใช้ใน bottom bar) ── */
 .lby-readout-chip {
   flex:1; display:flex; align-items:center; gap:6px;
   background:rgba(0,0,0,0.5); border:1.5px solid rgba(255,255,255,0.1);
@@ -894,63 +889,16 @@ canvas { display:block; }
         <span class="icon">🪙</span>
         <span id="lobbyCoin">16,334,732</span>
       </div>
-      <div class="lby-icon-btn" title="การแจ้งเตือน">🔔<span class="lby-notif-dot"></span></div>
-      <div class="lby-icon-btn" title="ข้อความ">💬</div>
-      <div class="lby-icon-btn" title="เมล">✉️<span class="lby-notif-dot"></span></div>
-      <div class="lby-icon-btn" title="เพื่อน">👥<span class="lby-notif-dot"></span></div>
       <div class="lby-icon-btn" title="ตั้งค่า">⚙️</div>
-      <div class="lby-icon-btn" title="เมนู">☰<span class="lby-notif-dot"></span></div>
     </div>
   </div>
 
-  <!-- Location / zone banner -->
-  <div id="lbyLocBanner">
-    <div class="lby-loc-pill">⏸ 행복한 공원</div>
-  </div>
 
-  <!-- HP Bar -->
-  <div id="lbyHpBar">
-    <div id="lbyHpWrap">
-      <div id="lbyHpFill"></div>
-      <span id="lbyHpHeart">❤️</span>
-      <span id="lbyHpText">477 / 1,000</span>
-      <span id="lbyHpInfo">ℹ</span>
-    </div>
-  </div>
 
   <!-- MAIN AREA -->
   <div id="lobbyMain">
 
-    <!-- LEFT SIDE BUTTONS -->
-    <div id="lbyLeftBtns">
-      <div class="lby-side-btn" onclick="">
-        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(20,10,60,0.9),rgba(10,5,40,0.8));border-color:rgba(150,100,255,0.5);">
-          🌟
-          <span class="lby-side-notif"></span>
-        </div>
-        <span class="lby-side-label">Legendary<br>Treasure!</span>
-      </div>
-      <div class="lby-side-btn" onclick="" style="margin-top:4px;">
-        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(60,20,10,0.9),rgba(40,10,5,0.8));">
-          👑
-          <span class="lby-side-notif"></span>
-        </div>
-        <span class="lby-side-label">Royal<br>Club</span>
-      </div>
-      <div class="lby-side-btn" onclick="">
-        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(40,20,10,0.9),rgba(25,10,5,0.8));">
-          🍪
-        </div>
-        <span class="lby-side-label">OvenPass</span>
-      </div>
-      <div class="lby-side-btn" onclick="">
-        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(20,50,20,0.9),rgba(10,30,10,0.8));border-color:rgba(100,255,100,0.4);">
-          🎁
-          <span class="lby-side-notif" style="content:'FREE'"></span>
-        </div>
-        <span class="lby-side-label" style="color:#88ff88;">FREE!</span>
-      </div>
-    </div>
+
 
     <!-- CENTER: Character showcase -->
     <div id="centerShowcase">
@@ -964,35 +912,7 @@ canvas { display:block; }
       </div>
     </div>
 
-    <!-- RIGHT SIDE EVENT BUTTONS -->
-    <div id="lbyRightBtns">
-      <div class="lby-event-btn" onclick="">
-        <div class="lby-event-icon" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <span class="ev-top">🎁 EVENTS</span>
-        </div>
-        <span class="lby-event-label">Events</span>
-      </div>
-      <div class="lby-event-btn" onclick="">
-        <div class="lby-event-icon" style="border-color:rgba(100,200,255,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <span class="ev-top" style="color:#a0e0ff;">✉️</span>
-          <span style="font-size:8px;color:#a0e0ff;font-weight:800;">Invitation<br>Event</span>
-        </div>
-        <span class="lby-event-label" style="color:#a0e0ff;">Invitation</span>
-      </div>
-      <div class="lby-event-btn" onclick="">
-        <div class="lby-event-icon" style="border-color:rgba(255,200,50,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <span style="font-size:9px;font-weight:900;color:#ffd740;">7th</span>
-          <span style="font-size:8px;color:#ffd740;font-weight:800;">Anniversary</span>
-        </div>
-        <span class="lby-event-label" style="color:#ffd740;">Anniversary</span>
-      </div>
-      <div class="lby-event-btn" onclick="">
-        <div class="lby-event-icon" style="border-color:rgba(100,200,100,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-          <span class="ev-top" style="color:#88ff88;">⏸ Guild</span>
-        </div>
-        <span class="lby-event-label" style="color:#88ff88;">Guild</span>
-      </div>
-    </div>
+
 
     <!-- LEGACY hidden panels (kept for JS compat) -->
     <div class="lby-panel" id="charPanel" style="display:none!important">
@@ -1026,28 +946,6 @@ canvas { display:block; }
   </div><!-- /lobbyMain -->
 
   <!-- BOTTOM NAV BAR -->
-  <!-- Readout: ตัวละคร + แมพที่เลือก (คลิกเปิด picker) -->
-  <div id="lbyReadout">
-    <div class="lby-readout-chip" id="lbyCharChip" title="เปลี่ยนตัวละคร">
-      <canvas id="lbyCharThumb" width="32" height="32"></canvas>
-      <div class="lby-readout-chip-text">
-        <div class="lby-readout-chip-label">ตัวละคร</div>
-        <div class="lby-readout-chip-name" id="lbyCharChipName">ช็อกโกแลต</div>
-        <div class="lby-readout-chip-sub" id="lbyCharChipSub">❤ 70</div>
-      </div>
-      <span class="lby-readout-chip-arrow">▼</span>
-    </div>
-    <div class="lby-readout-chip" id="lbyMapChip" title="เปลี่ยนแมพ">
-      <canvas id="lbyMapThumb" width="56" height="32"></canvas>
-      <div class="lby-readout-chip-text">
-        <div class="lby-readout-chip-label">แมพ</div>
-        <div class="lby-readout-chip-name" id="lbyMapChipName">เบเกอรี่</div>
-        <div class="lby-readout-chip-sub" id="lbyMapChipSub">แมพเริ่มต้น · 💨×5</div>
-      </div>
-      <span class="lby-readout-chip-arrow">▼</span>
-    </div>
-  </div>
-
   <div id="lbyBottomBar">
     <button class="lby-nav-btn" id="lbyCookiesBtn">
       <span class="lby-nav-icon">🍪</span>
@@ -1065,11 +963,22 @@ canvas { display:block; }
       <span class="lby-nav-icon">🧰</span>
       <span class="lby-nav-label">Rewards</span>
     </button>
+    <!-- Map chip inline แทน readout แยก — ความกว้างเท่า flex:2.2 เหมือน PLAY -->
+    <div class="lby-nav-btn" id="lbyMapChip" title="เปลี่ยนแมพ" style="flex:2.2;cursor:pointer;background:linear-gradient(160deg,rgba(20,30,60,0.85),rgba(10,15,40,0.75));border-color:rgba(100,160,255,0.4);">
+      <canvas id="lbyMapThumb" width="56" height="32" style="border-radius:6px;flex:0 0 auto;"></canvas>
+      <div class="lby-readout-chip-text" style="flex:1;min-width:0;">
+        <div class="lby-readout-chip-label">แมพ</div>
+        <div class="lby-readout-chip-name" id="lbyMapChipName">เบเกอรี่</div>
+      </div>
+      <span class="lby-readout-chip-arrow">▼</span>
+    </div>
     <button class="lby-nav-btn" id="lbyPlayBtn">
       <span class="lby-nav-icon"></span>
       <span class="lby-nav-label">PLAY!</span>
     </button>
   </div>
+  <!-- hidden canvas สำหรับ JS compat -->
+  <canvas id="lbyCharThumb" width="32" height="32" style="display:none;"></canvas>
 
 </div>
 
@@ -2795,7 +2704,6 @@ MAPS.forEach(mp => {
 });
 
 // ── เปิด/ปิด modals ──
-document.getElementById('lbyCharChip').addEventListener('click', () => openModal('modalChar'));
 document.getElementById('lbyCookiesBtn').addEventListener('click', () => openModal('modalChar'));
 document.getElementById('lbyMapChip').addEventListener('click', () => openModal('modalMap'));
 
