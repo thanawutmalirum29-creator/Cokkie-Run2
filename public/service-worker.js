@@ -1,7 +1,10 @@
 // ══════════════════════════════════════════════════════════
 // service-worker.js — แคชไฟล์เกมไว้ในเครื่อง (เล่นได้แม้เน็ตหลุด/ช้า)
+// + รองรับแจ้งอัปเดตให้ผู้เล่นกดโหลดเวอร์ชันใหม่เอง (ไม่สวมทับเงียบๆ)
 // ══════════════════════════════════════════════════════════
-const CACHE_NAME = 'cookie-run-v1';
+// 🔔 ทุกครั้งที่อัปเดตไฟล์เกม ให้เปลี่ยนเลขเวอร์ชันนี้ (v1 → v2 → v3 ...)
+// เพื่อบังคับให้ตรวจพบไฟล์ใหม่และแจ้งผู้เล่น
+const CACHE_NAME = 'cookie-run-v2';
 const ASSETS = [
   '/',
   '/index.html',
@@ -17,7 +20,8 @@ self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
-  self.skipWaiting();
+  // ⚠️ ไม่เรียก self.skipWaiting() ที่นี่ — รอให้ผู้เล่นกดยืนยันอัปเดตก่อน
+  // (ดูตอนรับ message ด้านล่าง)
 });
 
 self.addEventListener('activate', (e) => {
@@ -27,6 +31,13 @@ self.addEventListener('activate', (e) => {
     )
   );
   self.clients.claim();
+});
+
+// รับคำสั่งจากหน้าเว็บตอนผู้เล่นกด "อัปเดตเลย" → ค่อย skipWaiting จริง
+self.addEventListener('message', (e) => {
+  if (e.data && e.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 // อย่าแคช /api/* (ข้อมูลสกิลต้องมาจากเซิฟเวอร์เสมอ กันโกง)
@@ -47,3 +58,4 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+
