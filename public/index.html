@@ -819,8 +819,8 @@ let MAP  = toMapState(MAP_OBJ);
 let state = 'idle', score = 0, best = 0, raf = 0, frame = 0, speed = 5;
 let hp = CHAR.maxHp;
 let invincible = false, hpTimer = 0;
-// ── Background parallax accumulators (สะสมต่อเนื่อง ไม่กระโดดเมื่อ speed เปลี่ยน) ──
-let bgScrollFar = 0, bgScrollMid = 0, bgScrollCloud = 0, bgScrollGround = 0;
+// ── parallax accumulators — สะสมต่อเนื่อง ไม่ใช้ frame*speed ──
+let bgFar = 0, bgMid = 0, bgCloud = 0, bgFloor = 0;
 const cookie = { x:110, y:GROUND, vy:0, jumps:0, alive:true };
 let obs = [], obsTimer = 0, obsInterval = 95;
 let jels = [], jelTimer = 0;
@@ -849,7 +849,7 @@ let selMap  = 'bakery';
 function showLobbyScreen() {
   cancelAnimationFrame(raf);
   state = 'idle';
-  preBuiltWorldPlan = null; // กลับล็อบบี้ → เปลี่ยนตัวละคร/แมพได้ใหม่ ต้องคำนวณแมพใหม่
+  preBuiltWorldPlan = null; // (legacy — ไม่ใช้แล้ว ปลอดภัยที่จะ null)
   loadingScreenEl.style.display = 'none';
   gameScreenEl.style.display = 'none';
   lobbyScreenEl.style.display = '';
@@ -885,11 +885,9 @@ function showGameScreenWith(charId, mapId) {
 }
 
 // ══════════════════════════════════════════════════════════
-// LOADING FLOW — กดเริ่มวิ่ง → คำนวณแมพทั้งหมดล่วงหน้าก่อน
-// (ความยาวแมพคำนวณจากเลือดตัวละคร x ความเร็วแมพ x 3 เผื่อฮีล)
-// แล้วรอเพิ่มอีก 2 วิ ค่อยเข้าหน้าเกม เพื่อให้เข้าไปเล่นได้ทันทีไม่แล็ค
+// LOADING FLOW
 // ══════════════════════════════════════════════════════════
-const MIN_LOADING_AFTER_BUILD_MS = 2000;
+const MIN_LOADING_AFTER_BUILD_MS = 800;
 
 function startLoadingThenGame(charId, mapId) {
   CHAR_OBJ = CHARS.find(c => c.id === charId) || CHARS[0];
@@ -900,24 +898,14 @@ function startLoadingThenGame(charId, mapId) {
   lobbyScreenEl.style.display = 'none';
   gameScreenEl.style.display = 'none';
   loadingScreenEl.style.display = 'flex';
-  ldBarInnerEl.style.width = '8%';
-  ldHintEl.textContent = `กำลังคำนวณเส้นทางตามเลือด ❤ ${CHAR.maxHp} หน่วย...`;
+  ldBarInnerEl.style.width = '30%';
+  ldHintEl.textContent = `${MAP.name} — เตรียมพร้อม...`;
 
-  // ให้ browser ได้ paint หน้าโหลดก่อน ค่อยเริ่มคำนวณ (กันจอกระตุก)
   requestAnimationFrame(() => {
     setTimeout(() => {
-      ldBarInnerEl.style.width = '45%';
-      const t0 = performance.now();
-      // ── คำนวณแมพทั้งหมดล่วงหน้า ณ ตรงนี้ (ไม่ใช่ตอนกดเล่น) ──
-      preBuiltWorldPlan = buildWorldPlanFromPattern(MAP_OBJ.id, MAP.speed, CHAR.maxHp);
-      const buildMs = performance.now() - t0;
       ldBarInnerEl.style.width = '100%';
-      ldHintEl.textContent = 'พร้อมแล้ว กำลังเข้าแมพ...';
-
-      // โหลดเสร็จแล้ว + รออีก 2 วิ ก่อนขึ้นหน้าเกม
-      setTimeout(() => {
-        showGameScreenWith(charId, mapId);
-      }, MIN_LOADING_AFTER_BUILD_MS);
+      ldHintEl.textContent = 'พร้อมแล้ว!';
+      setTimeout(() => showGameScreenWith(charId, mapId), MIN_LOADING_AFTER_BUILD_MS);
     }, 50);
   });
 }
@@ -1023,9 +1011,8 @@ function reset() {
   obsTimer = 0; jelTimer = 0; obsInterval = MAP.obsInterval;
   hp = CHAR.maxHp; hpTimer = 0; invincible = false;
   jellyCount = 0; hasRevived = false; skillTimer = 0; dashing = false; dashFramesLeft = 0;
-  worldScroll = 0;
-  bgScrollFar = 0; bgScrollMid = 0; bgScrollCloud = 0; bgScrollGround = 0;
-  buildWorldPlan(); // pre-generate ทั้งฉากก่อนเริ่ม
+  bgFar = 0; bgMid = 0; bgCloud = 0; bgFloor = 0;
+  initStream();
   renderHpBar();
 }
 
@@ -1104,11 +1091,9 @@ function drawBg() {
   sky.addColorStop(0, MAP.sky[0]); sky.addColorStop(0.6, MAP.sky[1]); sky.addColorStop(1, MAP.sky[2]);
   ctx.fillStyle = sky; ctx.fillRect(0, 0, GW, GH);
 
-  const parFar  = bgScrollFar  % (GW + 200);
-  const parMid  = bgScrollMid  % (GW + 200);
-  drawMapScenery(MAP_OBJ.id, parFar, parMid);
+  drawMapScenery(MAP_OBJ.id, bgFar, bgMid);
 
-  const off = bgScrollCloud % GW;
+  const off = bgCloud % GW;
   clouds.forEach(cl => {
     const bx = ((cl.x - off * cl.s + GW * 2) % GW);
     ctx.fillStyle = MAP.acc + '11';
@@ -1120,7 +1105,7 @@ function drawBg() {
   ctx.fillStyle = g; ctx.fillRect(0, GROUND, GW, GH - GROUND);
   ctx.fillStyle = MAP.acc + 'aa'; ctx.fillRect(0, GROUND, GW, 3);
   ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
-  const tOff = bgScrollGround % 80;
+  const tOff = bgFloor % 80;
   for (let tx = -tOff; tx < GW; tx += 80) {
     ctx.beginPath(); ctx.moveTo(tx, GROUND); ctx.lineTo(tx, GH); ctx.stroke();
   }
@@ -1274,27 +1259,85 @@ function drawPot(p) {
 // obstacle + safe-path jelly trail คำนวณพร้อมกันก่อนเกมเริ่ม
 // ══════════════════════════════════════════════════════════
 
-// plan = array of { worldX, type:'obs'|'jel'|'pot', ...data }
-// worldX คือระยะจาก spawn point (pixel) — แปลงเป็น screen X ทุกเฟรม
-let worldPlan = [];   // รายการ event ทั้งหมดในฉาก
-let preBuiltWorldPlan = null; // แมพที่คำนวณไว้ล่วงหน้าตอนหน้าโหลด (กันแล็คตอนเข้าเกม)
-let worldScroll = 0; // จำนวน pixel ที่ scroll ไปแล้ว (worldX - worldScroll = screen X)
-const PLAN_LENGTH = 80000; // ความยาวฉาก (pixel) ก่อนวนซ้ำ
-const JELLY_SPACING = 32;  // ระยะห่างระหว่างเยลลี่แต่ละลูกบน path
+// ══════════════════════════════════════════════════════════
+// INFINITE TILE STREAMER
+// แทนที่จะ build plan ทั้งหมดล่วงหน้าแล้ว rebuild ตอนหมด
+// ระบบนี้ extend tile ล่วงหน้าตลอดเวลา ไม่มีรอยต่อ
+// ══════════════════════════════════════════════════════════
+let worldCursorX = 0;   // worldX ที่วาง tile ถัดไป (pixel จาก spawn)
+let worldScroll  = 0;   // pixel ที่ scroll ไปแล้ว (screenX = worldX - worldScroll)
+let tilePatternIdx = 0; // index ใน MAP_PATTERNS[] ปัจจุบัน
 
-function buildWorldPlan() {
-  // ── ใช้แมพที่คำนวณไว้ล่วงหน้าแล้ว (ตอนหน้าโหลด) ถ้ามี ──────
-  // เพื่อไม่ต้องคำนวณซ้ำตอนกดเริ่ม/ตอนวนแมพ → ไม่แล็ค
-  if (preBuiltWorldPlan && preBuiltWorldPlan.length) {
-    worldPlan = preBuiltWorldPlan;
-  } else {
-    // fallback เผื่อกรณีไม่ผ่านหน้าโหลด (ไม่ควรเกิดขึ้นในเส้นทางปกติ)
-    worldPlan = buildWorldPlanFromPattern(MAP_OBJ.id, MAP.speed, CHAR.maxHp);
+// pending events ที่รอ spawn (เรียง worldX น้อย→มาก)
+let pendingEvents = [];
+
+// สร้าง tile ถัดไปและ push events เข้า pendingEvents
+function emitNextTile() {
+  const pattern = MAP_PATTERNS[MAP_OBJ.id] || MAP_PATTERNS['bakery'];
+  const code = pattern[tilePatternIdx % pattern.length];
+  tilePatternIdx++;
+
+  const tileLayouts = MAP_TILE_LAYOUTS[MAP_OBJ.id] || MAP_TILE_LAYOUTS['bakery'];
+  const tileStart   = worldCursorX;
+  const TW = TILE_WIDTH;
+  const GROUND_Y = 310, CH = 48;
+
+  // obstacles
+  switch (code) {
+    case 102: pendingEvents.push({ worldX: tileStart + TW*0.45, kind:'obs', w:28, h:44, y:GROUND_Y-44,  type:'short' }); break;
+    case 103: pendingEvents.push({ worldX: tileStart + TW*0.5,  kind:'obs', w:80, h:22, y:GROUND_Y-130, type:'air'   }); break;
+    case 104: pendingEvents.push({ worldX: tileStart + TW*0.5,  kind:'obs', w:36, h:22, y:GROUND_Y-140, type:'air'   }); break;
+    case 105: pendingEvents.push({ worldX: tileStart + TW*0.45, kind:'obs', w:28, h:80, y:GROUND_Y-80,  type:'tall'  }); break;
+    case 106: pendingEvents.push({ worldX: tileStart + TW*0.4,  kind:'obs', w:65, h:28, y:GROUND_Y-28,  type:'wide'  }); break;
   }
-  worldPlanIdx = 0;
+
+  // jellies
+  const layout = (tileLayouts[code] || tileLayouts[101] || []);
+  for (const pt of layout) {
+    const wx = tileStart + pt.x;
+    pendingEvents.push({
+      worldX: wx, kind:'jel',
+      y: GROUND_Y - CH/2 - (pt.y || 0),
+      r: pt.r || 10, val: pt.val || 7,
+      bob: (wx % 8) * 0.4,
+      special: pt.special || false,
+    });
+  }
+
+  worldCursorX += TW;
 }
 
-let worldPlanIdx = 0; // index ถัดไปที่ยังไม่ spawn
+// เติม tile ล่วงหน้าให้ครอบ GW + buffer
+const STREAM_AHEAD = GW + 640; // emit ล่วงหน้า 2 tile เผื่อ
+function fillStream() {
+  while (worldCursorX - worldScroll < STREAM_AHEAD) {
+    emitNextTile();
+  }
+}
+
+function initStream() {
+  worldScroll    = 0;
+  worldCursorX   = GW + 300; // เริ่มห่างจากซ้ายจอ
+  tilePatternIdx = 0;
+  pendingEvents  = [];
+  fillStream();
+}
+
+function tickStream() {
+  // spawn events ที่ถึงหน้าจอ
+  while (pendingEvents.length && pendingEvents[0].worldX - worldScroll <= GW + 20) {
+    const ev = pendingEvents.shift();
+    const sx = ev.worldX - worldScroll;
+    if (ev.kind === 'obs') {
+      obs.push({ x: sx, y: ev.y, w: ev.w, h: ev.h, type: ev.type });
+    } else if (ev.kind === 'jel') {
+      jels.push({ x: sx, y: ev.y, r: ev.r, bob: ev.bob, done: false,
+                  special: ev.special, val: ev.val, trail: true });
+    }
+    // emit tile ใหม่ทดแทนทุกครั้งที่ spawn
+    fillStream();
+  }
+}
 
 function spawnJel(special = false) {
   if (special) {
@@ -1343,38 +1386,15 @@ function runFrame() {
   cookie.vy += 0.7; cookie.y += cookie.vy;
   if (cookie.y >= GROUND) { cookie.y = GROUND; cookie.vy = 0; cookie.jumps = 0; }
 
-  // ── World scroll: เลื่อน scroll counter และ spawn จาก plan ──
-  worldScroll += speed;
-
   // ── สะสม parallax ฉากหลัง (ต่อเนื่อง ไม่กระโดดเมื่อ speed เปลี่ยน) ──
-  bgScrollFar    += speed * 0.05;
-  bgScrollMid    += speed * 0.12;
-  bgScrollCloud  += speed * 0.18;
-  bgScrollGround += speed;
+  bgFar   += speed * 0.05;
+  bgMid   += speed * 0.12;
+  bgCloud += speed * 0.18;
+  bgFloor += speed;
 
-  // spawn events ที่ถึงเวลา (worldX - worldScroll = screen X)
-  while (worldPlanIdx < worldPlan.length) {
-    const ev = worldPlan[worldPlanIdx];
-    const screenX = ev.worldX - worldScroll;
-    if (screenX > GW + 20) break; // ยังไม่ถึง
-    worldPlanIdx++;
-    if (ev.kind === 'obs') {
-      obs.push({ x: screenX, y: ev.y, w: ev.w, h: ev.h, type: ev.type });
-    } else if (ev.kind === 'jel') {
-      jels.push({ x: screenX, y: ev.y, r: ev.r, bob: ev.bob, done: false, special: false, val: ev.val, trail: true });
-    }
-  }
-  // ถ้าหมด plan แล้ว → rebuild ฉากใหม่จาก pattern เดิม (loop)
-  if (worldPlanIdx >= worldPlan.length) {
-    // หัก planEnd ออกจาก worldScroll แทนการ reset = 0
-    // เพื่อให้ obs/jel ที่ยังอยู่บนจอไม่กระโดดพรึ่บ
-    const planEnd = worldPlan.length > 0 ? worldPlan[worldPlan.length - 1].worldX + 1 : 0;
-    worldScroll -= planEnd;
-    obs.forEach(o => o.x += planEnd);
-    jels.forEach(j => j.x += planEnd);
-    pots.forEach(p => p.x += planEnd);
-    buildWorldPlan();
-  }
+  // ── Infinite tile streamer ──
+  worldScroll += speed;
+  tickStream();
 
   obs = obs.filter(o => o.x + o.w > -10);
   obs.forEach(o => o.x -= speed);
