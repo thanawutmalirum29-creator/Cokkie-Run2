@@ -601,7 +601,7 @@ canvas { display:block; }
   <p>หมุนโทรศัพท์แนวนอน<br>เพื่อเล่นเกม! 🍪</p>
 </div>
 <button id="fsBtn">⛶</button>
-<div id="appVersion">cookie-run-v2.0.2</div>
+<div id="appVersion">กำลังโหลด...</div>
 
 <!-- ══════════ LOBBY SCREEN ══════════ -->
 <div id="lobbyScreen">
@@ -1891,10 +1891,27 @@ if (screen.orientation) {
       });
     }
 
+    // ── ดึงเวอร์ชันจาก cache name ของ service worker อัตโนมัติ ──
+    // ไม่ต้องแก้ index.html อีกต่อไป แก้แค่ CACHE_NAME ใน service-worker.js พอ
+    function updateVersionDisplay() {
+      caches.keys().then(keys => {
+        const swCache = keys.find(k => k.startsWith('cookie-run-'));
+        const verEl = document.getElementById('appVersion');
+        if (verEl) verEl.textContent = swCache || 'cookie-run-?';
+      }).catch(() => {});
+    }
+
     window.addEventListener('load', () => {
       navigator.serviceWorker.register('/service-worker.js')
-        .then(handleReg)
+        .then(reg => {
+          handleReg(reg);
+          // อ่านเวอร์ชันหลัง SW พร้อม
+          updateVersionDisplay();
+        })
         .catch((err) => console.warn('SW register failed', err));
+
+      // อ่านเวอร์ชันจาก cache ที่มีอยู่แล้วทันที (กรณีเปิดซ้ำ)
+      updateVersionDisplay();
 
       // กันรีโหลดวนซ้ำ
       let refreshed = false;
