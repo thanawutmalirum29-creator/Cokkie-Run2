@@ -1688,7 +1688,7 @@ function updateShowcase() {
   showcaseCanvas.style.setProperty('--glow-color', glowCol);
   document.getElementById('showcaseName').textContent = ch.name;
   document.getElementById('showcaseDesc').textContent = ch.desc;
-  const bonusLabels = { yellowJelly:'🐻 ผลิตเยลลี่หมี', dash:'⚡ แดช', jellyBonus:'★ เยลลี่ +5', healPotion:'💧 ยาฮีล', revive:'💫 ฟื้นคืนชีพ' };
+  const bonusLabels = { yellowJelly:'🐻 ผลิตเยลลี่หมี', dash:'⚡ แดช', jellyBonus:'★ เยลลี่ +1', healPotion:'💧 ยาฮีล', revive:'💫 ฟื้นคืนชีพ' };
   document.getElementById('showcaseBonusBadge').textContent = ch.bonus ? bonusLabels[ch.bonus] || ch.bonus : '— ไม่มีสกิล';
   // map
   drawMapShowcase(mp);
