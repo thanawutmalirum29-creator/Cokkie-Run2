@@ -4,7 +4,7 @@
 //
 // รหัส Tile (TILE_DEFS):
 //   101 = พื้นเรียบ (เยลลี่วางบนพื้นทั้งแถบ)
-//   102 = ทางกระโดด 1 รอบ (เยลลี่วางตาม arc กระโดดครั้งเดียว)
+//   102 = ทางกระโดด 1 รอบ (เยลลี่วางตามตำแหน่งที่กำหนดเอง ดู JELLY_LAYOUTS)
 //   103 = หลุม / ช่วงว่าง (ไม่มีเยลลี่, อุปสรรคอากาศ 'pit')
 //   104 = อุปสรรคด้านบน / อากาศ (obs ลอยกลางอากาศ, วิ่งลอดได้)
 //   105 = อุปสรรคพื้นสูง (obs บนพื้น tall สูง → กระโดด 2 รอบ)
@@ -19,6 +19,9 @@
 // ตัวอย่างอ่านแมพ bakery:
 //   [ 101, 101, 102, 104, 101, 103, 105, 101, 107, 101 ]
 //   = พื้น พื้น กระโดด1 อุปสรรคอากาศ พื้น หลุม สูง พื้น เยลลี่พิเศษ พื้น
+//
+// ⭐ ตำแหน่งเยลลี่ตอนกระโดด (tile 102 / 105 / 106) ไม่ได้คำนวณ physics
+//    แล้ว — กำหนดมือได้เลยที่ตัวแปร JELLY_LAYOUTS ด้านล่าง (เหมือนวาง CSS)
 // ══════════════════════════════════════════════════════════
 
 const TILE_WIDTH = 320; // ความกว้างของ 1 tile (px)
@@ -26,12 +29,62 @@ const TILE_WIDTH = 320; // ความกว้างของ 1 tile (px)
 // ── คำจำกัดความของแต่ละรหัส ─────────────────────────────
 const TILE_DEFS = {
   101: { name: 'พื้นเรียบ',          color: '#7a3a10', desc: 'วิ่งตรงๆ เยลลี่บนพื้น' },
-  102: { name: 'กระโดด 1 รอบ',       color: '#ff8c00', desc: 'obs สั้น เยลลี่ตาม arc' },
+  102: { name: 'กระโดด 1 รอบ',       color: '#ff8c00', desc: 'obs สั้น เยลลี่ตามตำแหน่งกำหนดมือ' },
   103: { name: 'หลุม',               color: '#222',    desc: 'ช่องว่าง ข้ามหลุม obs อากาศ' },
   104: { name: 'อุปสรรคอากาศ',       color: '#5050ff', desc: 'obs ลอย วิ่งลอดใต้ได้' },
-  105: { name: 'อุปสรรคสูง',         color: '#c0392b', desc: 'obs tall กระโดด 2 รอบ เยลลี่ตาม arc คู่' },
+  105: { name: 'อุปสรรคสูง',         color: '#c0392b', desc: 'obs tall กระโดด 2 รอบ เยลลี่ตามตำแหน่งกำหนดมือ' },
   106: { name: 'อุปสรรคกว้าง',       color: '#8e44ad', desc: 'obs wide กระโดดผ่านแบบยาว' },
   107: { name: 'เยลลี่พิเศษ',        color: '#f1c40f', desc: 'เยลลี่พิเศษลอยกลางทาง +โบนัส' },
+};
+
+// ══════════════════════════════════════════════════════════
+// JELLY_LAYOUTS — ตำแหน่งเยลลี่ตอนกระโดด (วางมือ ไม่คำนวณ physics)
+// ══════════════════════════════════════════════════════════
+// แต่ละ tile ที่มีกระโดด (102 / 105 / 106) จะมี array ของจุดเยลลี่
+// ตำแหน่งแต่ละจุดอ้างอิงจาก "จุดยึดของ obstacle" ในแนวนอน-แนวตั้งเอง
+// (เหมือนวาง CSS: บอกแค่ระยะห่าง ไม่ต้องคำนวณแรงโน้มถ่วง/ความเร็วกระโดด)
+//
+//   dx : ระยะห่างแนวนอนจากกึ่งกลาง obstacle (px) — ลบ = ก่อนถึง obs, บวก = เลยไปแล้ว
+//   dy : ระยะห่างแนวตั้งจากพื้น (px) — ค่ายิ่งลบมาก = ยิ่งสูงขึ้นจากพื้น
+//   r  : รัศมีเยลลี่ (px, ไม่ระบุ = ใช้ค่าเริ่มต้น 10)
+//
+// แก้ตัวเลขในนี้ได้เลยเพื่อจัดตำแหน่งเยลลี่ให้ตรงกับ jump arc จริงของเกม
+// ══════════════════════════════════════════════════════════
+const JELLY_LAYOUTS = {
+
+  // ── 102: obs สั้น กระโดด 1 ครั้ง ──────────────────────
+  102: [
+    { dx: -90, dy: 40 },
+    { dx: -60, dy: 70 },
+    { dx: -30, dy: 85 },
+    { dx:   0, dy: 85 },
+    { dx:  30, dy: 70 },
+    { dx:  60, dy: 40 },
+  ],
+
+  // ── 105: obs สูง กระโดด 2 ครั้ง (double jump) ─────────
+  105: [
+    { dx: -140, dy: 40  },
+    { dx: -110, dy: 75  },
+    { dx:  -80, dy: 105 },
+    { dx:  -45, dy: 125 },
+    { dx:  -10, dy: 130 },
+    { dx:   25, dy: 125 },
+    { dx:   60, dy: 105 },
+    { dx:   90, dy: 75  },
+    { dx:  120, dy: 40  },
+  ],
+
+  // ── 106: obs กว้าง กระโดดยาว 1 ครั้ง ───────────────────
+  106: [
+    { dx: -110, dy: 40 },
+    { dx:  -75, dy: 65 },
+    { dx:  -40, dy: 80 },
+    { dx:    0, dy: 85 },
+    { dx:   40, dy: 80 },
+    { dx:   75, dy: 65 },
+    { dx:  110, dy: 40 },
+  ],
 };
 
 // ══════════════════════════════════════════════════════════
@@ -97,12 +150,10 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
   const pattern = MAP_PATTERNS[mapId] || MAP_PATTERNS['bakery'];
   const plan = [];
 
-  // ค่า physics คงที่ (ต้องตรงกับ index.html)
+  // ค่า physics คงที่ (ต้องตรงกับ index.html) — ใช้แค่กำหนดความสูงพื้น/ตัวละคร
   const GROUND     = 310;
   const GW         = 800;
   const CH         = 48;
-  const JUMP1      = -13.5;
-  const JUMP2      = -10.5;
   const JELLY_GAP  = 32; // ระยะห่างเยลลี่บน trail
 
   // ── ต้องตรงกับ index.html: HP ลดเอง 1 หน่วยทุก 2 วิ (120 เฟรม @60fps) ──
@@ -123,17 +174,16 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
   // ต้องวน pattern ซ้ำกี่รอบถึงจะยาวพอ (อย่างน้อย 1 รอบ)
   const repeatCount = Math.max(1, Math.ceil(requiredDistancePx / patternDistancePx));
 
-  // simulate arc เหมือนใน index.html
-  function simulateArc(startWX, useDouble) {
-    const pts = [];
-    let vy = JUMP1, cy = GROUND, wx = startWX, secondUsed = false;
-    for (let t = 0; t < 300; t++) {
-      cy += vy; vy += 0.7; wx += mapSpeed;
-      if (useDouble && !secondUsed && vy >= 0) { vy = JUMP2; secondUsed = true; }
-      if (cy >= GROUND) { cy = GROUND; pts.push({ wx, safeY: cy - CH / 2 }); break; }
-      pts.push({ wx, safeY: cy - CH / 2 });
+  // ฟังก์ชันช่วยวางเยลลี่ตามตาราง JELLY_LAYOUTS (ไม่คำนวณ physics)
+  // anchorWX = ตำแหน่งกึ่งกลางของ obstacle ในแถบนั้น
+  function placeJellyLayout(plan, layoutCode, anchorWX) {
+    const layout = JELLY_LAYOUTS[layoutCode] || [];
+    for (const pt of layout) {
+      const wx = anchorWX + pt.dx;
+      const y = GROUND - CH / 2 - pt.dy; // dy บวก = สูงขึ้นจากพื้น
+      const r = pt.r || 10;
+      plan.push({ worldX: wx, kind: 'jel', y, r, bob: (wx % 8) * 0.4, val: 7, trail: true });
     }
-    return pts;
   }
 
   // วนแปลง tile ทีละตัว — ทำซ้ำ pattern จนกว่าจะยาวพอรองรับเลือด x SAFETY_MULT
@@ -155,19 +205,13 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
         break;
       }
 
-      // ── 102 กระโดด 1 รอบ (obs สั้น + เยลลี่ arc) ──────
+      // ── 102 กระโดด 1 รอบ (obs สั้น + เยลลี่วางมือ) ──────
       case 102: {
         const obsWX = tileStart + TILE_WIDTH * 0.45;
         const ow = 28, oh = 44, oTop = GROUND - oh;
         plan.push({ worldX: obsWX, kind: 'obs', w: ow, h: oh, y: oTop, type: 'short' });
 
-        const jumpWX = obsWX - 55;
-        const arc = simulateArc(jumpWX, false);
-        for (const pt of arc) {
-          if (pt.wx > obsWX - 12 && pt.wx < obsWX + ow + 12) continue; // ข้ามตัว obs
-          const clampedY = Math.min(Math.max(pt.safeY + 60, 14), GROUND - CH / 2);
-          plan.push({ worldX: pt.wx, kind: 'jel', y: clampedY, r: 10, bob: (pt.wx % 8) * 0.4, val: 7, trail: true });
-        }
+        placeJellyLayout(plan, 102, obsWX);
         break;
       }
 
@@ -195,35 +239,23 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
         break;
       }
 
-      // ── 105 อุปสรรคสูง (tall + กระโดด 2 รอบ) ──────────
+      // ── 105 อุปสรรคสูง (tall + กระโดด 2 รอบ + เยลลี่วางมือ) ──
       case 105: {
         const tallWX = tileStart + TILE_WIDTH * 0.45;
         const tw = 28, th = 80, tTop = GROUND - th;
         plan.push({ worldX: tallWX, kind: 'obs', w: tw, h: th, y: tTop, type: 'tall' });
 
-        const jumpWXtall = tallWX - 115;
-        const arcTall = simulateArc(jumpWXtall, true);
-        for (const pt of arcTall) {
-          if (pt.wx > tallWX - 12 && pt.wx < tallWX + tw + 12) continue;
-          const clampedY = Math.min(Math.max(pt.safeY + 60, 14), GROUND - CH / 2);
-          plan.push({ worldX: pt.wx, kind: 'jel', y: clampedY, r: 10, bob: (pt.wx % 8) * 0.4, val: 7, trail: true });
-        }
+        placeJellyLayout(plan, 105, tallWX);
         break;
       }
 
-      // ── 106 อุปสรรคกว้าง (wide + กระโดด arc ยาว) ───────
+      // ── 106 อุปสรรคกว้าง (wide + กระโดดยาว + เยลลี่วางมือ) ──
       case 106: {
         const wideWX = tileStart + TILE_WIDTH * 0.4;
         const ww = 65, wh = 28, wTop = GROUND - wh;
         plan.push({ worldX: wideWX, kind: 'obs', w: ww, h: wh, y: wTop, type: 'wide' });
 
-        const jumpWXwide = wideWX - 90;
-        const arcWide = simulateArc(jumpWXwide, false);
-        for (const pt of arcWide) {
-          if (pt.wx > wideWX - 12 && pt.wx < wideWX + ww + 12) continue;
-          const clampedY = Math.min(Math.max(pt.safeY + 60, 14), GROUND - CH / 2);
-          plan.push({ worldX: pt.wx, kind: 'jel', y: clampedY, r: 10, bob: (pt.wx % 8) * 0.4, val: 7, trail: true });
-        }
+        placeJellyLayout(plan, 106, wideWX);
         break;
       }
 

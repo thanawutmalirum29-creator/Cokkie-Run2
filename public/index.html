@@ -28,6 +28,27 @@ html, body {
   color:#ffe0b2;
 }
 
+/* ── แบนเนอร์แจ้งอัปเดตเวอร์ชันใหม่ ── */
+#updateBanner {
+  display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%);
+  z-index:99999; align-items:center; gap:12px;
+  background:linear-gradient(135deg,#ff6b35,#e53935);
+  color:#fff; font-size:14px; font-weight:700;
+  padding:11px 16px; border-radius:50px;
+  box-shadow:0 6px 24px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.2);
+  white-space:nowrap;
+}
+#updateBanner.show { display:flex; }
+#updateBanner button {
+  background:#fff; color:#e53935; border:none; border-radius:30px;
+  padding:7px 16px; font-size:13px; font-weight:800; cursor:pointer;
+  touch-action:manipulation;
+}
+#updateBanner button:active { transform:scale(0.95); }
+#updateBanner .ubClose {
+  background:transparent; color:#fff; font-size:18px; padding:0 4px; font-weight:700;
+}
+
 /* ── rotate prompt + fullscreen btn (ใช้ร่วมกันทั้งแอป) ── */
 #rotatePrompt {
   display:none; position:fixed; inset:0; background:#0d0200;
@@ -399,6 +420,13 @@ canvas { display:block; }
 </style>
 </head>
 <body>
+
+<!-- ══ แบนเนอร์แจ้งมีเวอร์ชันใหม่ ══ -->
+<div id="updateBanner">
+  <span>🆕 มีอัปเดตใหม่!</span>
+  <button id="updateNowBtn">โหลดใหม่</button>
+  <button class="ubClose" id="updateLaterBtn">✕</button>
+</div>
 
 <div id="rotatePrompt">
   <div class="icon">📱</div>
@@ -1444,10 +1472,48 @@ if (screen.orientation) {
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+      navigator.serviceWorker.register('/service-worker.js').then((reg) => {
+        // ── เคสที่ 1: มี worker ใหม่ "รออยู่" แล้วตั้งแต่เปิดมา (อัปเดตค้างจากรอบก่อน) ──
+        if (reg.waiting) showUpdateBanner(reg);
+
+        // ── เคสที่ 2: เจอเวอร์ชันใหม่ระหว่างที่เปิดแอปอยู่ ──
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          if (!newWorker) return;
+          newWorker.addEventListener('statechange', () => {
+            // 'installed' + มี controller เดิมอยู่แล้ว = นี่คืออัปเดต ไม่ใช่ติดตั้งครั้งแรก
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              showUpdateBanner(reg);
+            }
+          });
+        });
+      }).catch((err) => {
         console.warn('ลงทะเบียน service worker ไม่สำเร็จ', err);
       });
+
+      // กันรีโหลดวนซ้ำ — รีโหลดแค่ครั้งเดียวตอน controller เปลี่ยนจริง
+      let refreshed = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (refreshed) return;
+        refreshed = true;
+        window.location.reload();
+      });
     });
+  }
+
+  function showUpdateBanner(reg) {
+    const banner = document.getElementById('updateBanner');
+    const btnNow = document.getElementById('updateNowBtn');
+    const btnLater = document.getElementById('updateLaterBtn');
+    banner.classList.add('show');
+
+    btnNow.onclick = () => {
+      banner.classList.remove('show');
+      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    };
+    btnLater.onclick = () => {
+      banner.classList.remove('show');
+    };
   }
 </script>
 </body>
