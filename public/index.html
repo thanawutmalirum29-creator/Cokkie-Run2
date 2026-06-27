@@ -650,7 +650,7 @@ canvas { display:block; }
 
 <!-- ══ แบนเนอร์แจ้งมีเวอร์ชันใหม่ (ระหว่างเล่น) ══ -->
 <div id="updateBanner">
-  <span>🆕 มีอัปเดตใหม่!</span>
+  <span>🆕 มีอัปเดตใหม่! <span id="ubVersionText" style="opacity:0.75;font-weight:600;"></span></span>
   <button id="updateNowBtn">โหลดใหม่</button>
   <button class="ubClose" id="updateLaterBtn">✕</button>
 </div>
@@ -660,6 +660,7 @@ canvas { display:block; }
   <div class="ub-icon">🍪</div>
   <div class="ub-title">มีเวอร์ชันใหม่!<br>กรุณาอัปเดตก่อนเล่น</div>
   <div class="ub-sub">มีการอัปเดตเกม กดปุ่มด้านล่างเพื่อโหลดเวอร์ชันใหม่และเริ่มเล่นได้เลย</div>
+  <div class="ub-sub" id="ubBlockerVersionText" style="opacity:0.6;font-size:11px;"></div>
   <button class="ub-btn" id="updateBlockerBtn">🔄 อัปเดตและเข้าเกม</button>
 </div>
 
@@ -2606,6 +2607,7 @@ if (screen.orientation) {
 <script>
   if ('serviceWorker' in navigator) {
     let swReg = null;
+    let loadedVersion = null; // เวอร์ชันที่หน้านี้โหลดมาตอนแรก (ใช้โชว์ "จาก X เป็น Y")
 
     // ── ตัวแปรบอกว่าผู้ใช้เข้าเกมได้แล้วหรือยัง ──
     // (ตั้งเป็น true เมื่อ game screen แสดงครั้งแรก)
@@ -2615,10 +2617,27 @@ if (screen.orientation) {
       if (swReg) swReg.update().catch(() => {});
     }
 
+    // ── ดึงเวอร์ชันใหม่จาก server แล้วเติมข้อความ "จาก X → Y" ──
+    function applyVersionTransitionText() {
+      fetch('/api/version', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+          const newVer = d.version || '?';
+          const oldVer = loadedVersion || '?';
+          const txt = `(${oldVer} → ${newVer})`;
+          const bannerEl = document.getElementById('ubVersionText');
+          const blockerEl = document.getElementById('ubBlockerVersionText');
+          if (bannerEl) bannerEl.textContent = txt;
+          if (blockerEl) blockerEl.textContent = txt;
+        })
+        .catch(() => {});
+    }
+
     // ── แสดง blocker เต็มจอก่อนเข้าเกม ──
     function showUpdateBlocker(reg) {
       const blocker = document.getElementById('updateBlocker');
       if (!blocker || blocker.classList.contains('show')) return;
+      applyVersionTransitionText();
       blocker.classList.add('show');
       document.getElementById('updateBlockerBtn').onclick = () => {
         if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -2632,6 +2651,7 @@ if (screen.orientation) {
       const btnNow = document.getElementById('updateNowBtn');
       const btnLater = document.getElementById('updateLaterBtn');
       if (banner.classList.contains('show')) return;
+      applyVersionTransitionText();
       banner.classList.add('show');
       btnNow.onclick = () => {
         banner.classList.remove('show');
@@ -2679,6 +2699,7 @@ if (screen.orientation) {
       fetch('/api/version', { cache: 'no-store' })
         .then(r => r.json())
         .then(d => {
+          if (d.version && !loadedVersion) loadedVersion = d.version; // จับเวอร์ชันตอนโหลดหน้านี้ครั้งแรก
           const verEl = document.getElementById('appVersion');
           if (verEl) verEl.textContent = d.version ? `cookie-run-${d.version}` : 'cookie-run-?';
         })
@@ -2686,6 +2707,7 @@ if (screen.orientation) {
           // ออฟไลน์/server เรียกไม่ติด → fallback อ่านจาก cache ในเครื่องแทน
           caches.keys().then(keys => {
             const swCache = keys.find(k => k.startsWith('cookie-run-'));
+            if (swCache && !loadedVersion) loadedVersion = swCache.replace(/^cookie-run-/, '');
             const verEl = document.getElementById('appVersion');
             if (verEl) verEl.textContent = swCache || 'cookie-run-?';
           }).catch(() => {});
