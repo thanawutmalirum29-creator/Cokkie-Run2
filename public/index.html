@@ -1957,7 +1957,6 @@ function runFrame() {
       score += gain;
       const col = j.special ? '#ffd54f' : '#ff80ab';
       burst(j.x, j.y, col, j.special ? 16 : 10);
-      addFloat(j.x, j.y - 14, `+${Math.round(gain)}`, col);
     }
   });
 
