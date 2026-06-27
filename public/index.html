@@ -506,6 +506,174 @@ html, body {
 #startBtn { display:none !important; }
 
 /* ══════════════════════════════════════════════════════════
+   PICKER MODALS — เลือกตัวละคร / แมพ
+   ══════════════════════════════════════════════════════════ */
+@keyframes modalSlideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+
+.lby-modal-overlay {
+  display:none; position:fixed; inset:0; z-index:200;
+  background:rgba(0,0,0,0.75);
+  align-items:flex-end; justify-content:center;
+  backdrop-filter:blur(3px);
+}
+.lby-modal-overlay.open { display:flex; }
+
+.lby-modal {
+  width:100%; max-width:700px;
+  background:linear-gradient(170deg,#0d0820,#060410);
+  border:1.5px solid rgba(180,120,255,0.35);
+  border-bottom:none;
+  border-radius:22px 22px 0 0;
+  padding:0 0 16px;
+  animation:modalSlideUp 0.25s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 -8px 40px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04) inset;
+  max-height:72vh; display:flex; flex-direction:column;
+}
+.lby-modal-handle {
+  width:40px; height:4px; background:rgba(255,255,255,0.2);
+  border-radius:99px; margin:12px auto 4px; flex:0 0 4px;
+}
+.lby-modal-title {
+  flex:0 0 auto;
+  font-size:13px; font-weight:900; letter-spacing:2px; text-transform:uppercase;
+  color:#c9a0ff; text-align:center; padding:4px 16px 10px;
+  border-bottom:1px solid rgba(180,120,255,0.18);
+}
+.lby-modal-scroll {
+  flex:1 1 0; overflow-y:auto; padding:10px 12px;
+  scrollbar-width:none;
+}
+.lby-modal-scroll::-webkit-scrollbar { display:none; }
+
+/* ── CHAR GRID in modal ── */
+.lby-char-grid {
+  display:grid; grid-template-columns:repeat(3,1fr); gap:8px;
+}
+.lby-char-card {
+  display:flex; flex-direction:column; align-items:center; gap:5px;
+  padding:10px 6px;
+  background:rgba(255,255,255,0.03);
+  border:1.5px solid rgba(255,255,255,0.08);
+  border-radius:14px; cursor:pointer;
+  transition:all 0.15s cubic-bezier(.2,.8,.2,1);
+  touch-action:manipulation; user-select:none;
+  position:relative; overflow:hidden;
+  -webkit-tap-highlight-color:transparent;
+}
+.lby-char-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);
+}
+.lby-char-card:hover {
+  border-color:rgba(180,120,255,0.5);
+  background:rgba(180,120,255,0.08);
+  transform:translateY(-2px);
+}
+.lby-char-card.selected {
+  border-color:#c9a0ff;
+  background:rgba(180,120,255,0.14);
+  box-shadow:0 0 16px rgba(180,120,255,0.25), 0 0 0 2px rgba(180,120,255,0.3);
+}
+.lby-char-card.selected::after {
+  content:'✓'; position:absolute; top:5px; right:7px;
+  font-size:10px; font-weight:900; color:#c9a0ff;
+}
+.lby-char-card canvas { display:block; }
+.lby-char-card-name {
+  font-size:10px; font-weight:800; color:#ffe0b2;
+  text-align:center; line-height:1.2;
+}
+.lby-char-card-hp {
+  font-size:9px; color:#ff8a65; font-weight:600;
+}
+.lby-char-card-skill {
+  font-size:8.5px; color:#c9a0ff; text-align:center;
+  line-height:1.3; padding:0 2px;
+}
+
+/* ── MAP GRID in modal ── */
+.lby-map-grid {
+  display:flex; flex-direction:column; gap:8px;
+}
+.lby-map-card {
+  display:flex; align-items:center; gap:10px;
+  padding:8px 10px;
+  background:rgba(255,255,255,0.03);
+  border:1.5px solid rgba(255,255,255,0.08);
+  border-radius:12px; cursor:pointer;
+  transition:all 0.15s cubic-bezier(.2,.8,.2,1);
+  touch-action:manipulation; user-select:none;
+  position:relative;
+  -webkit-tap-highlight-color:transparent;
+}
+.lby-map-card:hover {
+  border-color:rgba(255,200,80,0.5);
+  background:rgba(255,200,80,0.06);
+  transform:translateX(3px);
+}
+.lby-map-card.selected {
+  border-color:#ffcc02;
+  background:rgba(255,204,2,0.1);
+  box-shadow:0 0 14px rgba(255,204,2,0.2);
+}
+.lby-map-card.selected::after {
+  content:'▶ เลือกอยู่'; position:absolute; right:10px;
+  font-size:9px; font-weight:800; color:#ffcc02;
+}
+.lby-map-card-thumb {
+  width:72px; height:44px; flex:0 0 72px;
+  border-radius:8px; overflow:hidden;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.lby-map-card-thumb canvas { display:block; width:72px; height:44px; }
+.lby-map-card-info { flex:1; min-width:0; }
+.lby-map-card-name {
+  font-size:12px; font-weight:800; color:#ffe0b2;
+}
+.lby-map-card-tag {
+  font-size:9px; color:#ff8a65; margin-top:1px;
+}
+.lby-map-card-speed {
+  font-size:9px; color:#ffb74d; margin-top:2px;
+}
+
+/* ── Selected readout above PLAY! ── */
+#lbyReadout {
+  display:flex; align-items:center; justify-content:space-between;
+  gap:6px; padding:4px 8px 0;
+  position:relative; z-index:10;
+}
+.lby-readout-chip {
+  flex:1; display:flex; align-items:center; gap:6px;
+  background:rgba(0,0,0,0.5); border:1.5px solid rgba(255,255,255,0.1);
+  border-radius:10px; padding:5px 8px; cursor:pointer;
+  transition:border-color 0.15s, background 0.15s;
+  touch-action:manipulation; user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  overflow:hidden;
+}
+.lby-readout-chip:hover {
+  border-color:rgba(180,120,255,0.5);
+  background:rgba(180,120,255,0.08);
+}
+.lby-readout-chip canvas { display:block; flex:0 0 auto; border-radius:50%; overflow:hidden; }
+.lby-readout-chip-text { flex:1; min-width:0; }
+.lby-readout-chip-label {
+  font-size:8px; font-weight:700; color:#888; letter-spacing:1px; text-transform:uppercase;
+}
+.lby-readout-chip-name {
+  font-size:11px; font-weight:800; color:#ffe0b2;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.lby-readout-chip-sub {
+  font-size:8px; color:#ff8a65; margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.lby-readout-chip-arrow {
+  font-size:9px; color:#888; flex:0 0 auto;
+}
+
+/* ══════════════════════════════════════════════════════════
    LOADING SCREEN — โชว์ระหว่างคำนวณแมพล่วงหน้า
    ══════════════════════════════════════════════════════════ */
 #loadingScreen {
@@ -858,8 +1026,30 @@ canvas { display:block; }
   </div><!-- /lobbyMain -->
 
   <!-- BOTTOM NAV BAR -->
+  <!-- Readout: ตัวละคร + แมพที่เลือก (คลิกเปิด picker) -->
+  <div id="lbyReadout">
+    <div class="lby-readout-chip" id="lbyCharChip" title="เปลี่ยนตัวละคร">
+      <canvas id="lbyCharThumb" width="32" height="32"></canvas>
+      <div class="lby-readout-chip-text">
+        <div class="lby-readout-chip-label">ตัวละคร</div>
+        <div class="lby-readout-chip-name" id="lbyCharChipName">ช็อกโกแลต</div>
+        <div class="lby-readout-chip-sub" id="lbyCharChipSub">❤ 70</div>
+      </div>
+      <span class="lby-readout-chip-arrow">▼</span>
+    </div>
+    <div class="lby-readout-chip" id="lbyMapChip" title="เปลี่ยนแมพ">
+      <canvas id="lbyMapThumb" width="56" height="32"></canvas>
+      <div class="lby-readout-chip-text">
+        <div class="lby-readout-chip-label">แมพ</div>
+        <div class="lby-readout-chip-name" id="lbyMapChipName">เบเกอรี่</div>
+        <div class="lby-readout-chip-sub" id="lbyMapChipSub">แมพเริ่มต้น · 💨×5</div>
+      </div>
+      <span class="lby-readout-chip-arrow">▼</span>
+    </div>
+  </div>
+
   <div id="lbyBottomBar">
-    <button class="lby-nav-btn" onclick="">
+    <button class="lby-nav-btn" id="lbyCookiesBtn">
       <span class="lby-nav-icon">🍪</span>
       <span class="lby-nav-label">Cookies</span>
     </button>
@@ -875,12 +1065,34 @@ canvas { display:block; }
       <span class="lby-nav-icon">🧰</span>
       <span class="lby-nav-label">Rewards</span>
     </button>
-    <button class="lby-nav-btn" id="lbyPlayBtn" onclick="">
+    <button class="lby-nav-btn" id="lbyPlayBtn">
       <span class="lby-nav-icon"></span>
       <span class="lby-nav-label">PLAY!</span>
     </button>
   </div>
 
+</div>
+
+<!-- ══ MODAL: เลือกตัวละคร ══ -->
+<div class="lby-modal-overlay" id="modalChar">
+  <div class="lby-modal">
+    <div class="lby-modal-handle"></div>
+    <div class="lby-modal-title">🍪 เลือกตัวละคร</div>
+    <div class="lby-modal-scroll">
+      <div class="lby-char-grid" id="pickerCharGrid"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ MODAL: เลือกแมพ ══ -->
+<div class="lby-modal-overlay" id="modalMap">
+  <div class="lby-modal">
+    <div class="lby-modal-handle"></div>
+    <div class="lby-modal-title">🗺️ เลือกแมพ</div>
+    <div class="lby-modal-scroll">
+      <div class="lby-map-grid" id="pickerMapGrid"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ══════════ LOADING SCREEN ══════════ -->
@@ -2424,12 +2636,16 @@ MAPS.forEach(mp => {
 function selectChar(id) {
   selChar = id;
   document.querySelectorAll('.char-row').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+  document.querySelectorAll('.lby-char-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
   updateShowcase();
+  if (typeof updateReadout === 'function') updateReadout();
 }
 function selectMap(id) {
   selMap = id;
   document.querySelectorAll('.map-row').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+  document.querySelectorAll('.lby-map-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
   updateShowcase();
+  if (typeof updateReadout === 'function') updateReadout();
 }
 function updateInfo() { updateShowcase(); } // backward compat
 updateShowcase();
@@ -2456,6 +2672,135 @@ document.getElementById('lobbyBtn2').addEventListener('click', showLobbyScreen);
 document.getElementById('fsBtn').addEventListener('click', () => {
   goFullscreenLandscape(() => { resize(); resizeBg(); });
 });
+
+// ══════════════════════════════════════════════════════════
+// PICKER MODALS — เลือกตัวละคร / แมพ
+// ══════════════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// ปิด modal เมื่อคลิก overlay
+['modalChar','modalMap'].forEach(id => {
+  document.getElementById(id).addEventListener('click', function(e) {
+    if (e.target === this) closeModal(id);
+  });
+});
+
+// ── อัปเดต readout chips บนแถบล่าง ──
+function updateReadout() {
+  const ch = CHARS.find(c => c.id === selChar) || CHARS[0];
+  const mp = MAPS.find(m => m.id === selMap)   || MAPS[0];
+
+  // char chip
+  document.getElementById('lbyCharChipName').textContent = ch.name;
+  document.getElementById('lbyCharChipSub').textContent  = `❤ ${ch.maxHp}` + (ch.bonus ? '  ·  ' + ({yellowJelly:'🐻',dash:'⚡',jellyBonus:'★',healPotion:'💧',revive:'💫'}[ch.bonus]||'') : '');
+  const cThumb = document.getElementById('lbyCharThumb');
+  const cCtx = cThumb.getContext('2d');
+  cCtx.clearRect(0,0,32,32);
+  drawGingerbread(cCtx, 16, 18, 0.44, { body:ch.bodyColor, chip:ch.chipColor, eye:ch.eyeColor, id:ch.id }, {});
+
+  // map chip
+  document.getElementById('lbyMapChipName').textContent = mp.name;
+  document.getElementById('lbyMapChipSub').textContent  = (mp.tag||'') + '  ·  💨×' + (mp.speed||5);
+  const mThumb = document.getElementById('lbyMapThumb');
+  const mCtx = mThumb.getContext('2d');
+  mThumb.width = 56; mThumb.height = 32;
+  const sg = mCtx.createLinearGradient(0,0,0,32);
+  sg.addColorStop(0, mp.sky[0]); sg.addColorStop(0.6, mp.sky[1]); sg.addColorStop(1, mp.sky[2]);
+  mCtx.fillStyle = sg; mCtx.fillRect(0,0,56,32);
+  drawMapMotif(mCtx, mp.id, 56, 32, mp.accent);
+  const gg = mCtx.createLinearGradient(0,20,0,32);
+  gg.addColorStop(0, mp.ground[0]); gg.addColorStop(1, mp.ground[1]);
+  mCtx.fillStyle = gg; mCtx.fillRect(0,20,56,12);
+}
+
+// ── สร้าง char picker cards ──
+const pickerCharGrid = document.getElementById('pickerCharGrid');
+CHARS.forEach(ch => {
+  const card = document.createElement('div');
+  card.className = 'lby-char-card' + (ch.id === selChar ? ' selected' : '');
+  card.dataset.id = ch.id;
+
+  const cv = document.createElement('canvas'); cv.width = 60; cv.height = 60;
+  const c = cv.getContext('2d');
+  drawGingerbread(c, 30, 34, 0.78, { body:ch.bodyColor, chip:ch.chipColor, eye:ch.eyeColor, id:ch.id }, {});
+  const badges = { yellowJelly:'🐻', dash:'⚡', jellyBonus:'★', healPotion:'💧', revive:'💫' };
+  if (ch.bonus && badges[ch.bonus]) {
+    c.font = '12px serif'; c.fillStyle = 'rgba(0,0,0,0.55)';
+    c.beginPath(); c.arc(52, 10, 10, 0, Math.PI*2); c.fill();
+    c.fillStyle = '#ffcc02'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(badges[ch.bonus], 52, 10);
+  }
+
+  const nm  = document.createElement('div'); nm.className  = 'lby-char-card-name'; nm.textContent = ch.name;
+  const hp  = document.createElement('div'); hp.className  = 'lby-char-card-hp';   hp.textContent = '❤ ' + ch.maxHp;
+  const sk  = document.createElement('div'); sk.className  = 'lby-char-card-skill';
+  sk.textContent = ch.bonus ? ({yellowJelly:'🐻 ผลิตเยลลี่หมี',dash:'⚡ แดช',jellyBonus:'★ เยลลี่ +pt',healPotion:'💧 ยาฮีล',revive:'💫 ฟื้นคืนชีพ'}[ch.bonus]||ch.bonus) : '— ปกติ';
+
+  card.appendChild(cv); card.appendChild(nm); card.appendChild(hp); card.appendChild(sk);
+
+  card.addEventListener('click', () => {
+    selChar = ch.id;
+    document.querySelectorAll('.lby-char-card').forEach(c => c.classList.toggle('selected', c.dataset.id === ch.id));
+    document.querySelectorAll('.char-row').forEach(c => c.classList.toggle('selected', c.dataset.id === ch.id));
+    updateShowcase();
+    updateReadout();
+    setTimeout(() => closeModal('modalChar'), 160);
+  });
+
+  pickerCharGrid.appendChild(card);
+});
+
+// ── สร้าง map picker cards ──
+const pickerMapGrid = document.getElementById('pickerMapGrid');
+MAPS.forEach(mp => {
+  const card = document.createElement('div');
+  card.className = 'lby-map-card' + (mp.id === selMap ? ' selected' : '');
+  card.dataset.id = mp.id;
+
+  const thumbWrap = document.createElement('div'); thumbWrap.className = 'lby-map-card-thumb';
+  const cv = document.createElement('canvas'); cv.width = 72; cv.height = 44;
+  const c = cv.getContext('2d');
+  const sg = c.createLinearGradient(0,0,0,44);
+  sg.addColorStop(0, mp.sky[0]); sg.addColorStop(0.6, mp.sky[1]); sg.addColorStop(1, mp.sky[2]);
+  c.fillStyle = sg; c.fillRect(0,0,72,44);
+  drawMapMotif(c, mp.id, 72, 44, mp.accent);
+  const gg = c.createLinearGradient(0,28,0,44);
+  gg.addColorStop(0, mp.ground[0]); gg.addColorStop(1, mp.ground[1]);
+  c.fillStyle = gg; c.fillRect(0,28,72,16);
+  thumbWrap.appendChild(cv);
+
+  const info = document.createElement('div'); info.className = 'lby-map-card-info';
+  const nm  = document.createElement('div'); nm.className = 'lby-map-card-name';  nm.textContent = mp.name;
+  const tag = document.createElement('div'); tag.className = 'lby-map-card-tag';  tag.textContent = mp.tag || '';
+  const spd = document.createElement('div'); spd.className = 'lby-map-card-speed'; spd.textContent = `💨 ×${mp.speed||5}`;
+  info.appendChild(nm); info.appendChild(tag); info.appendChild(spd);
+
+  card.appendChild(thumbWrap); card.appendChild(info);
+
+  card.addEventListener('click', () => {
+    selMap = mp.id;
+    document.querySelectorAll('.lby-map-card').forEach(c => c.classList.toggle('selected', c.dataset.id === mp.id));
+    document.querySelectorAll('.map-row').forEach(c => c.classList.toggle('selected', c.dataset.id === mp.id));
+    updateShowcase();
+    updateReadout();
+    setTimeout(() => closeModal('modalMap'), 160);
+  });
+
+  pickerMapGrid.appendChild(card);
+});
+
+// ── เปิด/ปิด modals ──
+document.getElementById('lbyCharChip').addEventListener('click', () => openModal('modalChar'));
+document.getElementById('lbyCookiesBtn').addEventListener('click', () => openModal('modalChar'));
+document.getElementById('lbyMapChip').addEventListener('click', () => openModal('modalMap'));
+
+// ── init readout ──
+updateReadout();
 
 // ══════════════════════════════════════════════════════════
 // BOOT — script โหลดหลังหมุนจอแล้ว → เริ่มล็อบบี้เลย
