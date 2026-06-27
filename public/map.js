@@ -20,8 +20,8 @@
 //   [ 101, 101, 102, 104, 101, 103, 105, 101, 107, 101 ]
 //   = พื้น พื้น กระโดด1 อุปสรรคอากาศ พื้น หลุม สูง พื้น เยลลี่พิเศษ พื้น
 //
-// ⭐ ตำแหน่งเยลลี่ตอนกระโดด (tile 102 / 105 / 106) ไม่ได้คำนวณ physics
-//    แล้ว — กำหนดมือได้เลยที่ตัวแปร JELLY_LAYOUTS ด้านล่าง (เหมือนวาง CSS)
+// ⭐ ตำแหน่งเยลลี่ทุก tile (101–107) กำหนดมือทั้งหมดที่ TILE_LAYOUTS
+//    ไม่มีการคำนวณอัตโนมัติเลย — แก้ตัวเลข x/y ได้อิสระ
 // ══════════════════════════════════════════════════════════
 
 const TILE_WIDTH = 320; // ความกว้างของ 1 tile (px)
@@ -38,52 +38,101 @@ const TILE_DEFS = {
 };
 
 // ══════════════════════════════════════════════════════════
-// JELLY_LAYOUTS — ตำแหน่งเยลลี่ตอนกระโดด (วางมือ ไม่คำนวณ physics)
+// TILE_LAYOUTS — ตำแหน่งเยลลี่ทุก tile กำหนดมือทั้งหมด
 // ══════════════════════════════════════════════════════════
-// แต่ละ tile ที่มีกระโดด (102 / 105 / 106) จะมี array ของจุดเยลลี่
-// ตำแหน่งแต่ละจุดอ้างอิงจาก "จุดยึดของ obstacle" ในแนวนอน-แนวตั้งเอง
-// (เหมือนวาง CSS: บอกแค่ระยะห่าง ไม่ต้องคำนวณแรงโน้มถ่วง/ความเร็วกระโดด)
 //
-//   dx : ระยะห่างแนวนอนจากกึ่งกลาง obstacle (px) — ลบ = ก่อนถึง obs, บวก = เลยไปแล้ว
-//   dy : ระยะห่างแนวตั้งจากพื้น (px) — ค่ายิ่งลบมาก = ยิ่งสูงขึ้นจากพื้น
-//   r  : รัศมีเยลลี่ (px, ไม่ระบุ = ใช้ค่าเริ่มต้น 10)
+// ทุก tile มี layout เป็น array ของจุดเยลลี่
+// ตำแหน่งอ้างอิงจาก "ต้น tile" (tileStart = 0)
 //
-// แก้ตัวเลขในนี้ได้เลยเพื่อจัดตำแหน่งเยลลี่ให้ตรงกับ jump arc จริงของเกม
+//   x   : ระยะจากต้น tile (px)  ช่วง 0–TILE_WIDTH (320)
+//   y   : ความสูงจากพื้น (px)    0 = พื้น, ยิ่งมาก = ยิ่งสูง
+//   r   : รัศมีเยลลี่ (ไม่ระบุ = 10)
+//   val : คะแนน (ไม่ระบุ = 7)
+//   special : true = เยลลี่โบนัส (สีทอง, val ใช้ค่าพิเศษ)
+//
+// tile 103 (หลุม) ไม่มีเยลลี่เลย — วางแค่ obs
 // ══════════════════════════════════════════════════════════
-const JELLY_LAYOUTS = {
 
-  // ── 102: obs สั้น กระโดด 1 ครั้ง ──────────────────────
-  102: [
-    { dx: -90, dy: 40 },
-    { dx: -60, dy: 70 },
-    { dx: -30, dy: 85 },
-    { dx:   0, dy: 85 },
-    { dx:  30, dy: 70 },
-    { dx:  60, dy: 40 },
+const TILE_LAYOUTS = {
+
+  // ── 101: พื้นเรียบ ──────────────────────────────────────
+  101: [
+    { x:  20, y:  0 },
+    { x:  52, y:  0 },
+    { x:  84, y:  0 },
+    { x: 116, y:  0 },
+    { x: 148, y:  0 },
+    { x: 180, y:  0 },
+    { x: 212, y:  0 },
+    { x: 244, y:  0 },
+    { x: 276, y:  0 },
+    { x: 300, y:  0 },
   ],
 
-  // ── 105: obs สูง กระโดด 2 ครั้ง (double jump) ─────────
+  // ── 102: obs สั้น กระโดด 1 ครั้ง ───────────────────────
+  // obs อยู่ที่ x ≈ 144 (TILE_WIDTH*0.45)
+  102: [
+    { x:  54, y:  0 },
+    { x:  84, y: 40 },
+    { x: 114, y: 70 },
+    { x: 144, y: 85 },
+    { x: 174, y: 70 },
+    { x: 204, y: 40 },
+    { x: 266, y:  0 },
+  ],
+
+  // ── 103: หลุม — ไม่มีเยลลี่ ────────────────────────────
+  103: [],
+
+  // ── 104: อุปสรรคอากาศ (obs ลอย วิ่งลอดใต้ได้) ─────────
+  // obs อยู่ที่ x ≈ 160 (TILE_WIDTH*0.5) → เว้นช่วงนั้น
+  104: [
+    { x:  20, y:  0 },
+    { x:  52, y:  0 },
+    { x:  84, y:  0 },
+    { x: 116, y:  0 },
+    { x: 244, y:  0 },
+    { x: 276, y:  0 },
+    { x: 300, y:  0 },
+  ],
+
+  // ── 105: obs สูง กระโดด 2 ครั้ง (double jump) ──────────
+  // obs อยู่ที่ x ≈ 144 (TILE_WIDTH*0.45)
   105: [
-    { dx: -140, dy: 40  },
-    { dx: -110, dy: 75  },
-    { dx:  -80, dy: 105 },
-    { dx:  -45, dy: 125 },
-    { dx:  -10, dy: 130 },
-    { dx:   25, dy: 125 },
-    { dx:   60, dy: 105 },
-    { dx:   90, dy: 75  },
-    { dx:  120, dy: 40  },
+    { x:  20, y:   0 },
+    { x:  52, y:  40 },
+    { x:  82, y:  75 },
+    { x: 112, y: 105 },
+    { x: 139, y: 130 },
+    { x: 169, y: 125 },
+    { x: 199, y: 105 },
+    { x: 229, y:  75 },
+    { x: 259, y:  40 },
+    { x: 300, y:   0 },
   ],
 
   // ── 106: obs กว้าง กระโดดยาว 1 ครั้ง ───────────────────
+  // obs อยู่ที่ x ≈ 128 (TILE_WIDTH*0.4)
   106: [
-    { dx: -110, dy: 40 },
-    { dx:  -75, dy: 65 },
-    { dx:  -40, dy: 80 },
-    { dx:    0, dy: 85 },
-    { dx:   40, dy: 80 },
-    { dx:   75, dy: 65 },
-    { dx:  110, dy: 40 },
+    { x:  18, y:  0 },
+    { x:  50, y: 40 },
+    { x:  88, y: 65 },
+    { x: 128, y: 85 },
+    { x: 168, y: 80 },
+    { x: 203, y: 65 },
+    { x: 238, y: 40 },
+    { x: 300, y:  0 },
+  ],
+
+  // ── 107: เยลลี่พิเศษลอยกลางอากาศ ───────────────────────
+  107: [
+    { x:  20, y:  0 },
+    { x:  84, y:  0 },
+    { x:  96, y: 100, r: 13, val: 15, special: true },
+    { x: 160, y: 100, r: 13, val: 15, special: true },
+    { x: 224, y: 100, r: 13, val: 15, special: true },
+    { x: 236, y:  0 },
+    { x: 300, y:  0 },
   ],
 };
 
@@ -150,141 +199,81 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
   const pattern = MAP_PATTERNS[mapId] || MAP_PATTERNS['bakery'];
   const plan = [];
 
-  // ค่า physics คงที่ (ต้องตรงกับ index.html) — ใช้แค่กำหนดความสูงพื้น/ตัวละคร
-  const GROUND     = 310;
-  const GW         = 800;
-  const CH         = 48;
-  const JELLY_GAP  = 32; // ระยะห่างเยลลี่บน trail
+  const GROUND = 310;
+  const GW     = 800;
+  const CH     = 48;
 
-  // ── ต้องตรงกับ index.html: HP ลดเอง 1 หน่วยทุก 2 วิ (120 เฟรม @60fps) ──
   const HP_TICK_FRAMES = 120;
-  const FALLBACK_HP    = 70;     // เผื่อไม่ได้ส่ง maxHp มา
-  const SAFETY_MULT    = 3;      // สร้างแมพเผื่อไว้ 3 เท่าของระยะที่วิ่งได้แน่ๆ (เผื่อฮีล/สกิลต่อชีวิต)
+  const FALLBACK_HP    = 70;
+  const SAFETY_MULT    = 3;
 
-  const hp = (typeof maxHp === 'number' && maxHp > 0) ? maxHp : FALLBACK_HP;
+  const hp  = (typeof maxHp    === 'number' && maxHp    > 0) ? maxHp    : FALLBACK_HP;
   const spd = (typeof mapSpeed === 'number' && mapSpeed > 0) ? mapSpeed : 5;
 
-  // ระยะที่วิ่งได้แน่ๆ ถ้าไม่โดนอะไรเลย (เลือดลดเองเรื่อยๆ จนตาย)
   const guaranteedDistancePx = hp * HP_TICK_FRAMES * spd;
-  // ระยะที่ต้องเตรียมแมพไว้ล่วงหน้า (เผื่อฮีล/สกิลต่อชีวิตทำให้วิ่งได้ไกลกว่านั้น)
-  const requiredDistancePx = guaranteedDistancePx * SAFETY_MULT;
+  const requiredDistancePx   = guaranteedDistancePx * SAFETY_MULT;
+  const patternDistancePx    = pattern.length * TILE_WIDTH;
+  const repeatCount          = Math.max(1, Math.ceil(requiredDistancePx / patternDistancePx));
 
-  // ความยาวของแมพที่เขียนไว้ 1 รอบ (px)
-  const patternDistancePx = pattern.length * TILE_WIDTH;
-  // ต้องวน pattern ซ้ำกี่รอบถึงจะยาวพอ (อย่างน้อย 1 รอบ)
-  const repeatCount = Math.max(1, Math.ceil(requiredDistancePx / patternDistancePx));
-
-  // ฟังก์ชันช่วยวางเยลลี่ตามตาราง JELLY_LAYOUTS (ไม่คำนวณ physics)
-  // anchorWX = ตำแหน่งกึ่งกลางของ obstacle ในแถบนั้น
-  function placeJellyLayout(plan, layoutCode, anchorWX) {
-    const layout = JELLY_LAYOUTS[layoutCode] || [];
+  // ── ฟังก์ชันวางเยลลี่จาก TILE_LAYOUTS ──────────────────
+  // tileStart = worldX ของต้น tile
+  function placeTileJellies(tileStart, code) {
+    const layout = TILE_LAYOUTS[code] || TILE_LAYOUTS[101];
     for (const pt of layout) {
-      const wx = anchorWX + pt.dx;
-      const y = GROUND - CH / 2 - pt.dy; // dy บวก = สูงขึ้นจากพื้น
-      const r = pt.r || 10;
-      plan.push({ worldX: wx, kind: 'jel', y, r, bob: (wx % 8) * 0.4, val: 7, trail: true });
+      const wx  = tileStart + pt.x;
+      const y   = GROUND - CH / 2 - (pt.y || 0);
+      const r   = pt.r   || 10;
+      const val = pt.val || 7;
+      plan.push({
+        worldX: wx, kind: 'jel', y, r,
+        bob: (wx % 8) * 0.4, val, trail: true,
+        special: pt.special || false,
+      });
     }
   }
 
-  // วนแปลง tile ทีละตัว — ทำซ้ำ pattern จนกว่าจะยาวพอรองรับเลือด x SAFETY_MULT
-  let curWX = GW + 300; // เริ่ม spawn หลังจอแรก
+  // ── ฟังก์ชันวาง obstacle ────────────────────────────────
+  function placeTileObs(tileStart, code) {
+    switch (code) {
+      case 102: {
+        const wx = tileStart + TILE_WIDTH * 0.45;
+        plan.push({ worldX: wx, kind: 'obs', w: 28, h: 44, y: GROUND - 44, type: 'short' });
+        break;
+      }
+      case 103: {
+        const wx = tileStart + TILE_WIDTH * 0.5;
+        plan.push({ worldX: wx, kind: 'obs', w: 80, h: 22, y: GROUND - 130, type: 'air' });
+        break;
+      }
+      case 104: {
+        const wx = tileStart + TILE_WIDTH * 0.5;
+        plan.push({ worldX: wx, kind: 'obs', w: 36, h: 22, y: GROUND - 140, type: 'air' });
+        break;
+      }
+      case 105: {
+        const wx = tileStart + TILE_WIDTH * 0.45;
+        plan.push({ worldX: wx, kind: 'obs', w: 28, h: 80, y: GROUND - 80, type: 'tall' });
+        break;
+      }
+      case 106: {
+        const wx = tileStart + TILE_WIDTH * 0.4;
+        plan.push({ worldX: wx, kind: 'obs', w: 65, h: 28, y: GROUND - 28, type: 'wide' });
+        break;
+      }
+      // 101, 107 ไม่มี obs
+    }
+  }
+
+  let curWX = GW + 300;
 
   for (let rep = 0; rep < repeatCount; rep++) {
     for (let i = 0; i < pattern.length; i++) {
       const code = pattern[i];
-      const tileStart = curWX;
-
-      switch (code) {
-
-      // ── 101 พื้นเรียบ ──────────────────────────────────
-      case 101: {
-        // เยลลี่บนพื้นตลอด tile
-        for (let wx = tileStart + 20; wx < tileStart + TILE_WIDTH - 20; wx += JELLY_GAP) {
-          plan.push({ worldX: wx, kind: 'jel', y: GROUND - CH / 2, r: 10, bob: (wx % 8) * 0.4, val: 7, trail: true });
-        }
-        break;
-      }
-
-      // ── 102 กระโดด 1 รอบ (obs สั้น + เยลลี่วางมือ) ──────
-      case 102: {
-        const obsWX = tileStart + TILE_WIDTH * 0.45;
-        const ow = 28, oh = 44, oTop = GROUND - oh;
-        plan.push({ worldX: obsWX, kind: 'obs', w: ow, h: oh, y: oTop, type: 'short' });
-
-        placeJellyLayout(plan, 102, obsWX);
-        break;
-      }
-
-      // ── 103 หลุม (pit) ──────────────────────────────────
-      case 103: {
-        // obs อากาศแบบ 'pit' ทำหน้าที่เป็นตัวกั้นแทน (ไม่มีพื้น)
-        // ไม่มีเยลลี่ในช่วงนี้ เพื่อบังคับให้กระโดดข้าม
-        const pitObsWX = tileStart + TILE_WIDTH * 0.5;
-        plan.push({ worldX: pitObsWX, kind: 'obs', w: 80, h: 22, y: GROUND - 130, type: 'air' });
-        break;
-      }
-
-      // ── 104 อุปสรรคอากาศ (ลอยกลางอากาศ วิ่งลอดได้) ────
-      case 104: {
-        const airWX = tileStart + TILE_WIDTH * 0.5;
-        plan.push({ worldX: airWX, kind: 'obs', w: 36, h: 22, y: GROUND - 140, type: 'air' });
-
-        // เยลลี่บนพื้นวิ่งผ่านได้ตลอด tile (เว้นใต้ obs)
-        for (let wx = tileStart + 20; wx < tileStart + TILE_WIDTH - 20; wx += JELLY_GAP) {
-          const underAir = wx > airWX - 20 && wx < airWX + 56;
-          if (!underAir) {
-            plan.push({ worldX: wx, kind: 'jel', y: GROUND - CH / 2, r: 10, bob: (wx % 8) * 0.4, val: 7, trail: true });
-          }
-        }
-        break;
-      }
-
-      // ── 105 อุปสรรคสูง (tall + กระโดด 2 รอบ + เยลลี่วางมือ) ──
-      case 105: {
-        const tallWX = tileStart + TILE_WIDTH * 0.45;
-        const tw = 28, th = 80, tTop = GROUND - th;
-        plan.push({ worldX: tallWX, kind: 'obs', w: tw, h: th, y: tTop, type: 'tall' });
-
-        placeJellyLayout(plan, 105, tallWX);
-        break;
-      }
-
-      // ── 106 อุปสรรคกว้าง (wide + กระโดดยาว + เยลลี่วางมือ) ──
-      case 106: {
-        const wideWX = tileStart + TILE_WIDTH * 0.4;
-        const ww = 65, wh = 28, wTop = GROUND - wh;
-        plan.push({ worldX: wideWX, kind: 'obs', w: ww, h: wh, y: wTop, type: 'wide' });
-
-        placeJellyLayout(plan, 106, wideWX);
-        break;
-      }
-
-      // ── 107 เยลลี่พิเศษ (โบนัสลอยกลางอากาศ) ───────────
-      case 107: {
-        // เยลลี่ปกติบนพื้นก่อน
-        for (let wx = tileStart + 20; wx < tileStart + TILE_WIDTH - 20; wx += JELLY_GAP * 1.5) {
-          plan.push({ worldX: wx, kind: 'jel', y: GROUND - CH / 2, r: 10, bob: (wx % 8) * 0.4, val: 7, trail: true });
-        }
-        // เยลลี่พิเศษ 3 ลูกลอยกลาง tile
-        const bonusY = GROUND - 100;
-        for (let b = 0; b < 3; b++) {
-          const bwx = tileStart + TILE_WIDTH * (0.3 + b * 0.2);
-          plan.push({ worldX: bwx, kind: 'jel', y: bonusY, r: 13, bob: b * 0.8, val: 15, trail: false, special: true });
-        }
-        break;
-      }
-
-      default: {
-        // รหัสที่ไม่รู้จัก → ปฏิบัติเหมือน 101
-        for (let wx = tileStart + 20; wx < tileStart + TILE_WIDTH - 20; wx += JELLY_GAP) {
-          plan.push({ worldX: wx, kind: 'jel', y: GROUND - CH / 2, r: 10, bob: (wx % 8) * 0.4, val: 7, trail: true });
-        }
-      }
-      } // switch
-
+      placeTileObs(curWX, code);
+      placeTileJellies(curWX, code);
       curWX += TILE_WIDTH;
-    } // for tile
-  } // for rep
+    }
+  }
 
   plan.sort((a, b) => a.worldX - b.worldX);
   return plan;
