@@ -1,15 +1,50 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
+const { Pool } = require('pg'); // npm install pg
 const app = express();
+app.use(express.json());
 const PORT = process.env.PORT || 3000;
+
+// ══════════════════════════════════════════════════════════
+// Database — Railway จะมี env var DATABASE_URL ให้อัตโนมัติ
+// ตอนแนบ Postgres plugin เข้ากับโปรเจกต์ (ไม่ต้องตั้งเอง)
+// ══════════════════════════════════════════════════════════
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : false,
+});
+
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS runs (
+      token       UUID PRIMARY KEY,
+      char_id     TEXT NOT NULL,
+      map_id      TEXT NOT NULL,
+      started_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+      used        BOOLEAN NOT NULL DEFAULT false
+    );
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS leaderboard (
+      id          SERIAL PRIMARY KEY,
+      player_name TEXT NOT NULL,
+      score       INTEGER NOT NULL,
+      char_id     TEXT NOT NULL,
+      map_id      TEXT NOT NULL,
+      created_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+    );
+  `);
+}
+initDb().catch(err => console.error('DB init error:', err));
 
 // ══════════════════════════════════════════════════════════
 // 🔔 จุดเดียวที่ต้องแก้ทุกครั้งที่อัปเดตเกม — ที่อื่นดึงจากตรงนี้หมด
 // (แสดงในหน้าเว็บผ่าน /api/version และฝังลงใน service-worker.js
 // ตอน serve เพื่อใช้เป็น CACHE_NAME — ไม่ต้องไปแก้ไฟล์ที่ 2 อีก)
 // ══════════════════════════════════════════════════════════
-const APP_VERSION = 'v0.0.9';
+const APP_VERSION = 'v0.0.8';
 
 // ══════════════════════════════════════════════════════════
 // ข้อมูลสกิล — เก็บไว้ฝั่งเซิฟเวอร์เท่านั้น (ไม่อยู่ในไฟล์ public
@@ -53,6 +88,101 @@ app.get('/api/skills', (req, res) => {
 app.get('/api/version', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ version: APP_VERSION });
+});
+
+// ══════════════════════════════════════════════════════════
+// ANTI-CHEAT: ตรวจคะแนนตอนส่งขึ้น leaderboard
+// แทนที่จะคำนวณเกมทุกเฟรมฝั่งเซิฟเวอร์ (ต้องเขียนเกมใหม่ทั้งระบบ)
+// เราคำนวณ "เพดานคะแนนสูงสุดที่เป็นไปได้จริง" จากเวลาที่เล่นจริง
+// (วัดจาก started_at บน server เอง ไม่เชื่อเวลาที่ client ส่งมา)
+// แล้ว reject คะแนนที่เกินเพดานนี้ — ตัวเลขนี้ตั้งใจให้ "หลวมพอ"
+// (สูงกว่าที่คนเล่นเก่งจริงๆทำได้หลายเท่า) เพื่อไม่ block คนเล่นปกติ
+// แต่ยังจับคนอมตะ/โกง magnet/แก้ speed ที่ปั่นคะแนนเกินจริงได้
+// ══════════════════════════════════════════════════════════
+const MAX_SCORE_PER_SEC = 45;   // ดูค่า passive(0.13*60=7.8/วิ) + เก็บเยลลี่/สกิลถี่ๆ แล้วคูณกันชน
+const SCORE_FLAT_BUFFER = 50;   // กันพลาดช่วงวินาทีแรกๆ/ความหน่วงเครือข่าย
+const MIN_RUN_SEC = 1;          // กันส่งคะแนนโดยไม่ได้เล่นจริง (เรียก submit ตรงๆ)
+const MAX_RUN_SEC = 60 * 60;    // เกิน 1 ชม. ถือว่าผิดปกติ ไม่รับ
+
+function isValidCharMap(charId, mapId) {
+  return Object.prototype.hasOwnProperty.call(CHAR_STATS, charId)
+      && Object.prototype.hasOwnProperty.call(MAP_STATS, mapId);
+}
+
+// เริ่มรอบเล่น — server บันทึกเวลาเริ่มของจริง (ไม่เชื่อเวลาจาก client)
+app.post('/api/run/start', async (req, res) => {
+  const { charId, mapId } = req.body || {};
+  if (!isValidCharMap(charId, mapId)) {
+    return res.status(400).json({ error: 'invalid charId/mapId' });
+  }
+  const token = crypto.randomUUID();
+  try {
+    await pool.query(
+      'INSERT INTO runs (token, char_id, map_id) VALUES ($1, $2, $3)',
+      [token, charId, mapId]
+    );
+    res.json({ token });
+  } catch (err) {
+    console.error('run/start error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// จบรอบเล่น — ตรวจ token + เวลาที่เล่นจริง ก่อนรับขึ้น leaderboard
+app.post('/api/run/submit', async (req, res) => {
+  const { token, score, playerName } = req.body || {};
+  const name = (typeof playerName === 'string' && playerName.trim())
+    ? playerName.trim().slice(0, 24) : 'ผู้เล่นนิรนาม';
+  const numScore = Math.floor(Number(score));
+
+  if (!token || !Number.isFinite(numScore) || numScore < 0) {
+    return res.status(400).json({ error: 'invalid payload' });
+  }
+
+  try {
+    const { rows } = await pool.query('SELECT * FROM runs WHERE token = $1', [token]);
+    const run = rows[0];
+    if (!run) return res.status(400).json({ error: 'invalid token' });
+    if (run.used) return res.status(400).json({ error: 'token already used' });
+
+    const elapsedSec = (Date.now() - new Date(run.started_at).getTime()) / 1000;
+    await pool.query('UPDATE runs SET used = true WHERE token = $1', [token]);
+
+    if (elapsedSec < MIN_RUN_SEC || elapsedSec > MAX_RUN_SEC) {
+      return res.status(400).json({ error: 'invalid run duration', accepted: false });
+    }
+
+    const maxAllowed = elapsedSec * MAX_SCORE_PER_SEC + SCORE_FLAT_BUFFER;
+    if (numScore > maxAllowed) {
+      console.warn(`⚠️ คะแนนต้องสงสัย: ${name} ส่ง ${numScore} แต้ม ใน ${elapsedSec.toFixed(1)}s (เพดาน ${maxAllowed.toFixed(0)})`);
+      return res.status(400).json({ error: 'score exceeds plausible maximum', accepted: false });
+    }
+
+    await pool.query(
+      'INSERT INTO leaderboard (player_name, score, char_id, map_id) VALUES ($1, $2, $3, $4)',
+      [name, numScore, run.char_id, run.map_id]
+    );
+    res.json({ accepted: true });
+  } catch (err) {
+    console.error('run/submit error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
+// อ่าน leaderboard
+app.get('/api/leaderboard', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 20, 100);
+  try {
+    const { rows } = await pool.query(
+      'SELECT player_name, score, char_id, map_id, created_at FROM leaderboard ORDER BY score DESC LIMIT $1',
+      [limit]
+    );
+    res.set('Cache-Control', 'no-store');
+    res.json(rows);
+  } catch (err) {
+    console.error('leaderboard error:', err);
+    res.status(500).json({ error: 'server error' });
+  }
 });
 
 // ── serve service-worker.js แบบ dynamic — ฝัง APP_VERSION ลงไปแทน
