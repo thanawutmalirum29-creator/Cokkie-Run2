@@ -1,0 +1,15 @@
+{
+  "name": "คุกกี้วิ่ง!",
+  "short_name": "คุกกี้วิ่ง",
+  "description": "เกมวิ่งเก็บเยลลี่ กระโดดข้ามอุปสรรค เลือกตัวละครและแมพได้หลากหลาย",
+  "start_url": "/",
+  "scope": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0d0200",
+  "theme_color": "#ff6b35",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

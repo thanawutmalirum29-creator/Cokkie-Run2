@@ -1,0 +1,1454 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🍪 คุกกี้วิ่ง!</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+@keyframes rspin    { from{transform:rotate(-30deg)} to{transform:rotate(30deg)} }
+@keyframes hpShake  { 0%,100%{transform:translateX(-50%)} 20%{transform:translateX(calc(-50% - 6px))} 60%{transform:translateX(calc(-50% + 6px))} }
+@keyframes hpPulse  { 0%,100%{opacity:1} 50%{opacity:0.55} }
+@keyframes dmgFlash { 0%{opacity:1} 100%{opacity:0} }
+@keyframes healPop  { 0%{transform:scale(1)} 40%{transform:scale(1.12)} 100%{transform:scale(1)} }
+@keyframes floatY   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+@keyframes shine    { 0%{transform:translateX(-120%) skewX(-15deg)} 100%{transform:translateX(220%) skewX(-15deg)} }
+@keyframes glowPulse{ 0%,100%{box-shadow:0 0 12px #ffcc0255, inset 0 0 14px #ff6b3522} 50%{box-shadow:0 0 26px #ffcc0299, inset 0 0 18px #ff6b3544} }
+@keyframes popIn    { 0%{opacity:0; transform:scale(0.85) translateY(8px)} 100%{opacity:1; transform:scale(1) translateY(0)} }
+@keyframes badgeBob { 0%,100%{transform:translateY(0) rotate(-4deg)} 50%{transform:translateY(-3px) rotate(4deg)} }
+@keyframes skullPulse{ 0%,100%{transform:scale(1)} 50%{transform:scale(1.25)} }
+
+html, body {
+  width:100dvw; height:100dvh; overflow:hidden; background:#0d0200;
+  font-family:'Segoe UI','Noto Sans Thai',sans-serif;
+  color:#ffe0b2;
+}
+
+/* ── rotate prompt + fullscreen btn (ใช้ร่วมกันทั้งแอป) ── */
+#rotatePrompt {
+  display:none; position:fixed; inset:0; background:#0d0200;
+  z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px;
+}
+#rotatePrompt .icon { font-size:72px; animation:rspin 1.6s ease-in-out infinite alternate; }
+#rotatePrompt p { font-size:22px; color:#ff8a65; text-align:center; }
+@media(orientation:portrait){
+  #rotatePrompt { display:flex !important; }
+  #lobbyScreen, #gameScreen, #fsBtn { display:none !important; }
+}
+#fsBtn {
+  position:fixed; bottom:10px; right:10px; z-index:100;
+  background:rgba(0,0,0,0.6); border:2px solid #ff6b35;
+  border-radius:10px; color:#ff8a65; font-size:18px;
+  width:40px; height:40px; cursor:pointer;
+  display:none; align-items:center; justify-content:center;
+  touch-action:manipulation;
+  box-shadow:0 3px 10px rgba(0,0,0,0.4);
+  transition:transform 0.12s, background 0.15s;
+}
+#fsBtn:hover { background:rgba(255,107,53,0.25); }
+#fsBtn:active { transform:scale(0.9); }
+
+/* ══════════════════════════════════════════════════════════
+   LOBBY SCREEN
+   ══════════════════════════════════════════════════════════ */
+#bgCanvas {
+  position:fixed; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:0;
+}
+#app {
+  position:fixed; inset:0; z-index:1;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:flex-start;
+  padding:8px 16px 8px;
+  overflow:hidden;
+  gap:0;
+}
+.title { flex:0 0 auto; text-align:center; padding:6px 0 8px; position:relative; }
+.title h1 {
+  font-size:clamp(20px,4vw,44px);
+  font-weight:900; letter-spacing:2px;
+  background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);
+  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
+  background-clip:text;
+  filter:drop-shadow(0 0 14px #ff6b3588);
+  line-height:1.1;
+  animation:floatY 3.2s ease-in-out infinite;
+  display:inline-block;
+}
+.title p {
+  font-size:clamp(11px,1.6vw,14px); color:#ffb74d; margin-top:2px;
+  letter-spacing:0.5px;
+}
+.title p::before, .title p::after { content:'✦'; color:#ff6b35; margin:0 8px; opacity:0.7; }
+
+.sections {
+  flex:1 1 0; min-height:0;
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;
+  width:100%; max-width:820px; margin:6px 0;
+  overflow:visible;
+}
+.section-box {
+  background:linear-gradient(160deg,rgba(255,107,53,0.1),rgba(20,5,0,0.4));
+  border:1.5px solid rgba(255,107,53,0.35);
+  border-radius:16px; padding:10px 12px;
+  display:flex; flex-direction:column;
+  min-height:0; overflow:hidden;
+  box-shadow:0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.04);
+  position:relative;
+}
+.section-box::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:2px;
+  background:linear-gradient(90deg,transparent,#ff6b35,#ffcc02,#ff6b35,transparent);
+  opacity:0.7;
+}
+.section-box h2 {
+  flex:0 0 auto;
+  font-size:clamp(12px,1.8vw,15px);
+  color:#ffd599; letter-spacing:1px; margin-bottom:8px;
+  display:flex; align-items:center; gap:6px;
+  text-shadow:0 0 10px #ff6b3555;
+}
+.section-box h2::after {
+  content:''; flex:1; height:1px;
+  background:linear-gradient(90deg,#ff6b3577,transparent);
+  margin-left:4px;
+}
+
+.char-grid {
+  flex:1 1 0; min-height:0;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.char-grid::-webkit-scrollbar { display:none; }
+.char-card {
+  background:linear-gradient(160deg,rgba(0,0,0,0.4),rgba(40,10,0,0.25));
+  border:2px solid rgba(255,255,255,0.06);
+  border-radius:12px; padding:8px 4px;
+  cursor:pointer; text-align:center;
+  transition:all 0.18s cubic-bezier(.2,.8,.2,1); position:relative;
+  user-select:none; -webkit-tap-highlight-color:transparent;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.char-card:hover { border-color:#ff6b35; background:rgba(255,107,53,0.14); transform:translateY(-3px) scale(1.02); box-shadow:0 6px 16px rgba(255,107,53,0.25); }
+.char-card.selected {
+  border-color:#ffcc02; background:rgba(255,204,2,0.14);
+  animation:glowPulse 1.8s ease-in-out infinite;
+  transform:translateY(-2px);
+}
+.char-card.selected::after {
+  content:'✓'; position:absolute; top:-6px; right:-4px;
+  font-size:10px; color:#1a0800; font-weight:900;
+  width:18px; height:18px; border-radius:50%;
+  background:linear-gradient(135deg,#ffcc02,#ff9100);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 8px #ffcc0299;
+}
+.char-avatar {
+  width:50px; height:50px; margin:0 auto 4px;
+  display:flex; align-items:center; justify-content:center;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,0.06),transparent 70%);
+  border:1px solid rgba(255,255,255,0.08);
+}
+.char-avatar canvas { display:block; }
+.char-name { font-size:clamp(9px,1.5vw,12px); font-weight:700; color:#ffe0b2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.char-desc { font-size:clamp(8px,1.2vw,10px); color:#ff8a65; margin-top:1px; }
+
+.map-grid {
+  flex:1 1 0; min-height:0;
+  display:grid; grid-template-columns:repeat(3,1fr); gap:6px;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.map-grid::-webkit-scrollbar { display:none; }
+.map-card {
+  background:linear-gradient(160deg,rgba(0,0,0,0.4),rgba(40,10,0,0.25));
+  border:2px solid rgba(255,255,255,0.06);
+  border-radius:12px; padding:6px 4px;
+  cursor:pointer; text-align:center;
+  transition:all 0.18s cubic-bezier(.2,.8,.2,1); position:relative;
+  user-select:none; -webkit-tap-highlight-color:transparent;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+}
+.map-card:hover { border-color:#ff6b35; background:rgba(255,107,53,0.14); transform:translateY(-3px) scale(1.02); box-shadow:0 6px 16px rgba(255,107,53,0.25); }
+.map-card.selected {
+  border-color:#ffcc02; background:rgba(255,204,2,0.12);
+  animation:glowPulse 1.8s ease-in-out infinite;
+  transform:translateY(-2px);
+}
+.map-card.selected::after {
+  content:'✓'; position:absolute; top:-6px; right:-4px;
+  font-size:10px; color:#1a0800; font-weight:900;
+  width:18px; height:18px; border-radius:50%;
+  background:linear-gradient(135deg,#ffcc02,#ff9100);
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 0 8px #ffcc0299;
+}
+.map-preview {
+  width:100%; height:38px; border-radius:7px; margin-bottom:4px;
+  overflow:hidden; position:relative;
+  border:1px solid rgba(255,255,255,0.08);
+}
+.map-preview canvas { width:100%; height:100%; display:block; }
+.map-name { font-size:clamp(9px,1.5vw,12px); font-weight:700; color:#ffe0b2; }
+.map-tag  { font-size:9px; color:#ff8a65; margin-top:1px; }
+
+.start-wrap {
+  flex:0 0 auto;
+  width:100%; max-width:820px;
+  display:flex; flex-direction:column; align-items:center; gap:7px;
+  padding-bottom:6px;
+}
+.selected-info {
+  font-size:clamp(11px,1.6vw,13px); color:#ffd599; text-align:center;
+  background:rgba(255,107,53,0.1); border:1px solid rgba(255,107,53,0.3);
+  border-radius:50px; padding:3px 16px; letter-spacing:0.3px;
+}
+#startBtn {
+  width:clamp(190px,32vw,260px);
+  padding:13px 0; font-size:clamp(15px,2.2vw,20px);
+  font-weight:900; letter-spacing:1.5px;
+  background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);
+  color:#fff; border:none; border-radius:50px; cursor:pointer;
+  box-shadow:0 4px 24px #ff6b3566, 0 0 0 2px rgba(255,255,255,0.08) inset;
+  transition:transform 0.12s, box-shadow 0.12s;
+  touch-action:manipulation; position:relative; overflow:hidden;
+}
+#startBtn::before {
+  content:''; position:absolute; top:0; bottom:0; width:40%;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,0.45),transparent);
+  animation:shine 2.6s ease-in-out infinite;
+}
+#startBtn:active { transform:scale(0.95); box-shadow:0 2px 10px #ff6b3544; }
+#startBtn:hover  { transform:translateY(-2px); box-shadow:0 8px 32px #ff6b3588; }
+
+/* ══════════════════════════════════════════════════════════
+   LOADING SCREEN — โชว์ระหว่างคำนวณแมพล่วงหน้า
+   ══════════════════════════════════════════════════════════ */
+#loadingScreen {
+  position:fixed; inset:0; z-index:50; display:none;
+  flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  background:radial-gradient(circle at 50% 40%,rgba(40,12,0,0.96),rgba(8,2,0,0.98));
+}
+#loadingScreen .ldCookie {
+  font-size:54px;
+  animation:ldBounce 0.7s ease-in-out infinite;
+}
+@keyframes ldBounce { 0%,100%{transform:translateY(0) rotate(-8deg)} 50%{transform:translateY(-14px) rotate(8deg)} }
+#loadingScreen .ldTitle { font-size:20px; font-weight:800; color:#ff6b35; text-shadow:0 0 16px #ff3d00; }
+#loadingScreen .ldBarOuter {
+  width:220px; height:10px; border-radius:99px; overflow:hidden;
+  background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,107,53,0.5);
+}
+#loadingScreen .ldBarInner {
+  height:100%; width:0%; border-radius:99px;
+  background:linear-gradient(90deg,#ff6b35,#ffcc02);
+  transition:width 0.15s linear;
+}
+#loadingScreen .ldHint { font-size:12px; color:#ff8a65; }
+
+/* ══════════════════════════════════════════════════════════
+   GAME SCREEN
+   ══════════════════════════════════════════════════════════ */
+#gameScreen {
+  position:fixed; inset:0; z-index:1;
+  display:none; align-items:center; justify-content:center;
+}
+#gameWrap {
+  position:relative; overflow:hidden;
+  border-radius:14px;
+  box-shadow:0 0 0 3px #ff6b35aa, 0 0 0 6px rgba(0,0,0,0.5), 0 10px 40px rgba(0,0,0,0.6);
+}
+canvas { display:block; }
+
+#ui {
+  position:absolute; top:0; left:0; right:0;
+  padding:10px 14px; display:flex; justify-content:space-between; align-items:flex-start;
+  pointer-events:none; z-index:10;
+}
+.sbox {
+  background:linear-gradient(160deg,rgba(20,5,0,0.75),rgba(0,0,0,0.55));
+  border:2px solid #ff6b35; border-bottom-width:3px;
+  border-radius:10px; padding:5px 14px;
+  color:#ffe0b2; font-size:15px; font-weight:800;
+  text-shadow:0 0 8px #ff6b35;
+  box-shadow:0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.08);
+  display:flex; align-items:center; gap:5px;
+}
+.sbox:first-child { border-color:#ffcc02; }
+.sbox:last-child   { border-color:#ffd54f; }
+
+#hpWrap {
+  position:absolute; top:9px; left:50%; transform:translateX(-50%);
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  pointer-events:none; z-index:11;
+  white-space:nowrap;
+  background:rgba(10,2,0,0.45); padding:6px 14px 7px; border-radius:14px;
+  border:1px solid rgba(255,107,53,0.3);
+}
+#hpWrap.shake { animation:hpShake 0.35s ease; }
+#hpLabel {
+  display:flex; align-items:center; gap:5px;
+  font-size:12px; font-weight:800; color:#ff8a80;
+  text-shadow:0 0 6px #ff000099;
+}
+.hico {
+  width:15px; height:13px; display:inline-block;
+  background:#e53935;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") center/contain no-repeat;
+  mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") center/contain no-repeat;
+  filter:drop-shadow(0 0 4px #ff000099);
+}
+#hpBarOuter {
+  width:190px; height:14px;
+  background:rgba(0,0,0,0.6);
+  border:1.5px solid rgba(255,80,80,0.55);
+  border-radius:99px; overflow:hidden; position:relative;
+  box-shadow:inset 0 1px 3px rgba(0,0,0,0.6);
+}
+#hpBarInner {
+  height:100%; border-radius:99px;
+  background:linear-gradient(90deg,#c62828,#ef5350,#ff8a80);
+  transition:width 0.22s ease, background 0.4s;
+  position:relative;
+}
+#hpBarInner::after {
+  content:''; position:absolute; top:2px; left:8px;
+  width:35%; height:4px; border-radius:99px;
+  background:rgba(255,255,255,0.26);
+}
+#hpBarInner.danger {
+  background:linear-gradient(90deg,#7f0000,#c62828);
+  animation:hpPulse 0.6s ease infinite;
+}
+#hpBarInner.heal { animation:healPop 0.35s ease; }
+#hpText { font-size:10px; color:#ffcdd2; font-weight:700; letter-spacing:0.3px; }
+
+#dmgOverlay {
+  position:absolute; inset:0; pointer-events:none; z-index:15;
+  background:rgba(220,0,0,0.28); opacity:0;
+}
+#dmgOverlay.flash { animation:dmgFlash 0.45s ease forwards; }
+
+#overlay {
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  background:radial-gradient(circle at 50% 40%,rgba(40,12,0,0.92),rgba(8,2,0,0.95));
+  z-index:20; gap:14px;
+}
+#overlay > div {
+  display:flex; flex-direction:column; align-items:center; gap:12px;
+  background:rgba(20,6,0,0.55);
+  border:1.5px solid rgba(255,107,53,0.4);
+  border-radius:20px; padding:28px 34px;
+  box-shadow:0 0 40px rgba(255,107,53,0.18), inset 0 1px 0 rgba(255,255,255,0.05);
+  animation:popIn 0.3s ease;
+}
+#overlay h1 { font-size:38px; color:#ff6b35; text-shadow:0 0 20px #ff3d00; }
+#overlay p  { color:#ffe0b2; font-size:17px; text-align:center; line-height:1.6; }
+.hint {
+  color:#ff8a65; font-size:13px; border:1px solid #ff6b3544;
+  border-radius:8px; padding:7px 16px; background:rgba(255,107,53,0.08);
+}
+.btn-play {
+  padding:13px 42px; font-size:20px; font-weight:800; letter-spacing:0.5px;
+  background:linear-gradient(135deg,#ff6b35,#e53935);
+  color:#fff; border:none; border-radius:50px; cursor:pointer;
+  box-shadow:0 4px 20px #ff3d0077, inset 0 1px 0 rgba(255,255,255,0.15);
+  transition:transform 0.1s, box-shadow 0.15s; touch-action:manipulation;
+  position:relative; overflow:hidden;
+}
+.btn-play::before {
+  content:''; position:absolute; top:0; bottom:0; width:35%;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,0.4),transparent);
+  animation:shine 2.8s ease-in-out infinite;
+}
+.btn-play:active { transform:scale(0.95); }
+.btn-play:hover  { box-shadow:0 6px 28px #ff3d0099, inset 0 1px 0 rgba(255,255,255,0.15); }
+.btn-lobby {
+  padding:9px 26px; font-size:14px; font-weight:700;
+  background:rgba(255,107,53,0.15); color:#ff8a65;
+  border:1.5px solid #ff6b3566; border-radius:50px; cursor:pointer;
+  transition:background 0.15s, transform 0.12s; touch-action:manipulation;
+}
+.btn-lobby:hover { background:rgba(255,107,53,0.28); transform:translateY(-1px); }
+.btn-lobby:active { transform:scale(0.95); }
+
+#skullWarn {
+  position:absolute; top:2px; right:-22px; font-size:16px;
+  opacity:0; transition:opacity 0.2s;
+}
+#hpWrap.danger-mode #skullWarn { opacity:1; animation:skullPulse 0.7s ease-in-out infinite; }
+
+.score-card {
+  display:flex; gap:18px; justify-content:center;
+  background:rgba(0,0,0,0.3); border:1px solid rgba(255,107,53,0.3);
+  border-radius:14px; padding:10px 22px;
+}
+.score-card .col { text-align:center; }
+.score-card .col .lbl { font-size:11px; color:#ffb74d; letter-spacing:0.5px; }
+.score-card .col .val { font-size:26px; font-weight:900; color:#ff6b35; text-shadow:0 0 12px #ff6b3577; }
+.score-card .col .val.gold { color:#ffcc02; text-shadow:0 0 12px #ffcc0277; }
+</style>
+</head>
+<body>
+
+<div id="rotatePrompt">
+  <div class="icon">📱</div>
+  <p>หมุนโทรศัพท์แนวนอน<br>เพื่อเล่นเกม! 🍪</p>
+</div>
+<button id="fsBtn">⛶</button>
+
+<!-- ══════════ LOBBY SCREEN ══════════ -->
+<div id="lobbyScreen">
+  <canvas id="bgCanvas"></canvas>
+  <div id="app">
+    <div class="title">
+      <h1>🍪 คุกกี้วิ่ง!</h1>
+      <p>เลือกตัวละครและแมพ แล้วกระโดดกันเลย</p>
+    </div>
+
+    <div class="sections">
+      <div class="section-box">
+        <h2>🧁 เลือกตัวละคร</h2>
+        <div class="char-grid" id="charGrid"></div>
+      </div>
+      <div class="section-box">
+        <h2>🗺️ เลือกแมพ</h2>
+        <div class="map-grid" id="mapGrid"></div>
+      </div>
+    </div>
+
+    <div class="start-wrap">
+      <div class="selected-info" id="selectedInfo">กำลังเลือก...</div>
+      <button id="startBtn">▶ เริ่มวิ่ง!</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════ LOADING SCREEN ══════════ -->
+<div id="loadingScreen">
+  <div class="ldCookie">🍪</div>
+  <div class="ldTitle" id="ldTitle">กำลังสร้างแมพ...</div>
+  <div class="ldBarOuter"><div class="ldBarInner" id="ldBarInner"></div></div>
+  <div class="ldHint" id="ldHint">เตรียมเส้นทางให้พร้อมก่อนเริ่มวิ่ง</div>
+</div>
+
+<!-- ══════════ GAME SCREEN ══════════ -->
+<div id="gameScreen">
+  <div id="gameWrap">
+    <canvas id="c"></canvas>
+    <div id="dmgOverlay"></div>
+
+    <div id="ui">
+      <div class="sbox">🍪 <span id="sc">0</span></div>
+      <div class="sbox">🏆 <span id="hi">0</span></div>
+    </div>
+
+    <div id="hpWrap">
+      <div id="hpLabel">
+        <span class="hico"></span>
+        <span id="hpText">70 / 70</span>
+        <span id="skullWarn">💀</span>
+      </div>
+      <div id="hpBarOuter">
+        <div id="hpBarInner"></div>
+      </div>
+    </div>
+
+    <div id="overlay">
+      <div id="overlayIdle">
+        <h1 id="overlayTitle">🍪 คุกกี้วิ่ง!</h1>
+        <p id="overlayDesc">กระโดดข้ามอุปสรรคและเก็บเจลลี่!</p>
+        <div class="hint">Space / ↑ / แตะ = กระโดด &nbsp;|&nbsp; กด 2 ครั้ง = กระโดดสูง</div>
+        <button class="btn-play"  id="playBtn">▶ เริ่มวิ่ง!</button>
+        <button class="btn-lobby" id="lobbyBtn">← กลับหน้าหลัก</button>
+      </div>
+      <div id="overlayDead" style="display:none">
+        <h1>😵 ล้มแล้ว!</h1>
+        <div class="score-card">
+          <div class="col"><div class="lbl">คะแนน</div><div class="val" id="deadScore">0</div></div>
+          <div class="col"><div class="lbl">🏆 สูงสุด</div><div class="val gold" id="deadBest">0</div></div>
+        </div>
+        <button class="btn-play"  id="playAgainBtn">🔄 เล่นอีกครั้ง!</button>
+        <button class="btn-lobby" id="lobbyBtn2">← เปลี่ยนตัวละคร/แมพ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ BOOT GUARD: รอ landscape ก่อนโหลด script ══ -->
+<script>
+(function () {
+  function isPortrait() {
+    if (screen.orientation) return screen.orientation.type.startsWith('portrait');
+    return window.innerHeight > window.innerWidth;
+  }
+
+  function loadGameScripts() {
+    var s1 = document.createElement('script');
+    s1.src = 'gameData.js';
+    s1.onload = function () {
+      var s2 = document.createElement('script');
+      s2.src = 'fullscreen.js';
+      s2.onload = function () {
+        var sMap = document.createElement('script');
+        sMap.src = 'map.js';
+        sMap.onload = function () {
+          var raw = document.getElementById('gameMain').textContent;
+          var s3 = document.createElement('script');
+          s3.textContent = raw;
+          document.body.appendChild(s3);
+        };
+        document.body.appendChild(sMap);
+      };
+      document.body.appendChild(s2);
+    };
+    document.body.appendChild(s1);
+  }
+
+  if (!isPortrait()) {
+    // landscape อยู่แล้ว → โหลดทันที
+    loadGameScripts();
+  } else {
+    // portrait → CSS ซ่อน lobby/game และแสดง rotatePrompt อัตโนมัติ
+    // รอจนหมุนเป็น landscape แล้วค่อยโหลด
+    function onOrientChange() {
+      setTimeout(function () {
+        if (!isPortrait()) {
+          window.removeEventListener('orientationchange', onOrientChange);
+          if (screen.orientation) screen.orientation.removeEventListener('change', onOrientChange);
+          loadGameScripts();
+        }
+      }, 300);
+    }
+    window.addEventListener('orientationchange', onOrientChange);
+    if (screen.orientation) screen.orientation.addEventListener('change', onOrientChange);
+  }
+})();
+</script>
+
+<!-- inline game script เก็บไว้แบบ text/plain ไม่รันอัตโนมัติ -->
+<script id="gameMain" type="text/plain">
+// ══════════════════════════════════════════════════════════
+// ทั้งล็อบบี้และเกมอยู่ใน HTML เอกสารเดียวกัน — สลับฉากด้วย
+// JS (show/hide) เท่านั้น ไม่มีการเปลี่ยนหน้า/โหลดเอกสารใหม่
+// จึงไม่หลุด fullscreen และไม่มีจอกระพริบเหมือนเดิม
+// ══════════════════════════════════════════════════════════
+
+// ── ข้อมูลสกิล (โหลดจากเซิฟเวอร์ครั้งเดียวตอนเปิดแอป) ──────
+let SKILLS = SKILLS_FALLBACK;
+
+// ── DOM refs ที่ใช้ร่วมกันทั้งแอป ──────────────────────────
+const lobbyScreenEl   = document.getElementById('lobbyScreen');
+const gameScreenEl    = document.getElementById('gameScreen');
+const loadingScreenEl = document.getElementById('loadingScreen');
+const ldBarInnerEl    = document.getElementById('ldBarInner');
+const ldHintEl        = document.getElementById('ldHint');
+const bgC    = document.getElementById('bgCanvas');
+const bgCtx  = bgC.getContext('2d');
+const canvas = document.getElementById('c');
+const ctx    = canvas.getContext('2d');
+const overlay       = document.getElementById('overlay');
+const overlayIdleEl  = document.getElementById('overlayIdle');
+const overlayDeadEl  = document.getElementById('overlayDead');
+const hpBarInner = document.getElementById('hpBarInner');
+const hpText     = document.getElementById('hpText');
+const hpWrap     = document.getElementById('hpWrap');
+const dmgOverlay = document.getElementById('dmgOverlay');
+
+const GW = 800, GH = 400, GROUND = 310;
+const HP_TICK_FRAMES = 120; // 2 วิ @ 60fps
+const CW = 48, CH = 48;
+const JUMP1 = -13.5, JUMP2 = -10.5, MAX_JUMPS = 2, SCORE_MULT = 1.0;
+
+// ── ตัวละคร/แมพปัจจุบัน (เปลี่ยนใหม่ได้ทุกครั้งที่กด "เริ่มวิ่ง!" จากล็อบบี้) ──
+function toCharState(o) { return { id:o.id, name:o.name, body:o.bodyColor, chip:o.chipColor, eye:o.eyeColor, bonus:o.bonus, maxHp:o.maxHp }; }
+function toMapState(o)  { return { id:o.id, name:o.name, sky:o.sky, ground:o.ground, acc:o.accent, speed:o.speed||5, obsInterval:o.obsInterval||95 }; }
+let CHAR_OBJ = CHARS[0];
+let MAP_OBJ  = MAPS[0];
+let CHAR = toCharState(CHAR_OBJ);
+let MAP  = toMapState(MAP_OBJ);
+
+// ── สถานะเกม ──────────────────────────────────────────────
+let state = 'idle', score = 0, best = 0, raf = 0, frame = 0, speed = 5;
+let hp = CHAR.maxHp;
+let invincible = false, hpTimer = 0;
+const cookie = { x:110, y:GROUND, vy:0, jumps:0, alive:true };
+let obs = [], obsTimer = 0, obsInterval = 95;
+let jels = [], jelTimer = 0;
+let pots = [];
+let parts = [];
+const floats = [];
+let jellyCount = 0, hasRevived = false, skillTimer = 0, dashing = false, dashFramesLeft = 0;
+const clouds = Array.from({length:6}, (_, i) => ({
+  x: i * 140 + 40, y: 40 + Math.random() * 60, w: 80 + Math.random() * 60, s: 0.3 + Math.random() * 0.4,
+}));
+
+// ── สถานะล็อบบี้ ──────────────────────────────────────────
+let embers = [];
+for (let i = 0; i < 55; i++) embers.push({
+  x: Math.random() * innerWidth, y: Math.random() * innerHeight,
+  r: Math.random() * 2.5 + 0.5, vy: -(Math.random() * 0.6 + 0.2),
+  vx: (Math.random() - 0.5) * 0.4, life: Math.random(),
+  hue: Math.random() > 0.5 ? 20 : 40,
+});
+let selChar = 'choco';
+let selMap  = 'bakery';
+
+// ══════════════════════════════════════════════════════════
+// สลับฉาก (ไม่เปลี่ยนหน้า HTML)
+// ══════════════════════════════════════════════════════════
+function showLobbyScreen() {
+  cancelAnimationFrame(raf);
+  state = 'idle';
+  preBuiltWorldPlan = null; // กลับล็อบบี้ → เปลี่ยนตัวละคร/แมพได้ใหม่ ต้องคำนวณแมพใหม่
+  loadingScreenEl.style.display = 'none';
+  gameScreenEl.style.display = 'none';
+  lobbyScreenEl.style.display = '';
+}
+function updateOverlayDesc() {
+  document.getElementById('overlayTitle').textContent = `🍪 ${CHAR.name} — ${MAP.name}`;
+  document.getElementById('overlayDesc').textContent =
+    (CHAR.bonus ? bonusDesc(CHAR.bonus, CHAR.maxHp, SKILLS) : `กระโดดข้ามอุปสรรคและเก็บเจลลี่!  |  ❤ ${CHAR.maxHp} หน่วย`);
+}
+function showGameScreenWith(charId, mapId) {
+  CHAR_OBJ = CHARS.find(c => c.id === charId) || CHARS[0];
+  MAP_OBJ  = MAPS.find(m => m.id === mapId)   || MAPS[0];
+  CHAR = toCharState(CHAR_OBJ);
+  MAP  = toMapState(MAP_OBJ);
+  updateOverlayDesc();
+  overlayIdleEl.style.display = '';
+  overlayDeadEl.style.display = 'none';
+  overlay.style.display = 'flex';
+  state = 'idle';
+  lobbyScreenEl.style.display = 'none';
+  loadingScreenEl.style.display = 'none';
+  gameScreenEl.style.display = 'flex';
+  resize();
+}
+
+// ══════════════════════════════════════════════════════════
+// LOADING FLOW — กดเริ่มวิ่ง → คำนวณแมพทั้งหมดล่วงหน้าก่อน
+// (ความยาวแมพคำนวณจากเลือดตัวละคร x ความเร็วแมพ x 3 เผื่อฮีล)
+// แล้วรอเพิ่มอีก 2 วิ ค่อยเข้าหน้าเกม เพื่อให้เข้าไปเล่นได้ทันทีไม่แล็ค
+// ══════════════════════════════════════════════════════════
+const MIN_LOADING_AFTER_BUILD_MS = 2000;
+
+function startLoadingThenGame(charId, mapId) {
+  CHAR_OBJ = CHARS.find(c => c.id === charId) || CHARS[0];
+  MAP_OBJ  = MAPS.find(m => m.id === mapId)   || MAPS[0];
+  CHAR = toCharState(CHAR_OBJ);
+  MAP  = toMapState(MAP_OBJ);
+
+  lobbyScreenEl.style.display = 'none';
+  gameScreenEl.style.display = 'none';
+  loadingScreenEl.style.display = 'flex';
+  ldBarInnerEl.style.width = '8%';
+  ldHintEl.textContent = `กำลังคำนวณเส้นทางตามเลือด ❤ ${CHAR.maxHp} หน่วย...`;
+
+  // ให้ browser ได้ paint หน้าโหลดก่อน ค่อยเริ่มคำนวณ (กันจอกระตุก)
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      ldBarInnerEl.style.width = '45%';
+      const t0 = performance.now();
+      // ── คำนวณแมพทั้งหมดล่วงหน้า ณ ตรงนี้ (ไม่ใช่ตอนกดเล่น) ──
+      preBuiltWorldPlan = buildWorldPlanFromPattern(MAP_OBJ.id, MAP.speed, CHAR.maxHp);
+      const buildMs = performance.now() - t0;
+      ldBarInnerEl.style.width = '100%';
+      ldHintEl.textContent = 'พร้อมแล้ว กำลังเข้าแมพ...';
+
+      // โหลดเสร็จแล้ว + รออีก 2 วิ ก่อนขึ้นหน้าเกม
+      setTimeout(() => {
+        showGameScreenWith(charId, mapId);
+      }, MIN_LOADING_AFTER_BUILD_MS);
+    }, 50);
+  });
+}
+
+fetchSkills().then(s => {
+  SKILLS = s;
+  if (gameScreenEl.style.display !== 'none') updateOverlayDesc();
+});
+
+// ══════════════════════════════════════════════════════════
+// CANVAS RESIZE
+// ══════════════════════════════════════════════════════════
+function resize() {
+  const vw = window.visualViewport ? window.visualViewport.width  : window.innerWidth;
+  const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+  const scale = Math.min(vw / GW, vh / GH);
+  const dw = Math.floor(GW * scale), dh = Math.floor(GH * scale);
+  canvas.width = GW; canvas.height = GH;
+  canvas.style.width = dw + 'px'; canvas.style.height = dh + 'px';
+  const wrap = document.getElementById('gameWrap');
+  wrap.style.width = dw + 'px'; wrap.style.height = dh + 'px';
+}
+function resizeBg() { bgC.width = innerWidth; bgC.height = innerHeight; }
+
+window.addEventListener('resize', () => { resize(); resizeBg(); });
+if (window.visualViewport) window.visualViewport.addEventListener('resize', resize);
+document.addEventListener('fullscreenchange',       () => setTimeout(() => { resize(); resizeBg(); }, 300));
+document.addEventListener('webkitfullscreenchange', () => setTimeout(() => { resize(); resizeBg(); }, 300));
+
+// ══════════════════════════════════════════════════════════
+// HP SYSTEM
+// ══════════════════════════════════════════════════════════
+function renderHpBar() {
+  const pct = Math.max(0, hp / CHAR.maxHp) * 100;
+  hpBarInner.style.width = pct + '%';
+  hpText.textContent = `${hp} / ${CHAR.maxHp}`;
+  const danger = hp / CHAR.maxHp < 0.25;
+  hpBarInner.classList.toggle('danger', danger);
+  hpWrap.classList.toggle('danger-mode', danger);
+}
+
+function isSkillInvincible() {
+  return CHAR.bonus === 'dash' && dashing;
+}
+
+function takeDamage() {
+  // โดนสิ่งกีดขวาง — มีเอฟเฟคเต็ม (สั่นแถบเลือด, จอแดงวาบ, อนุภาคกระจาย)
+  if (invincible || isSkillInvincible() || hp <= 0 || state !== 'playing') return;
+  hp = Math.max(0, hp - 1);
+  renderHpBar();
+
+  hpWrap.classList.remove('shake'); void hpWrap.offsetWidth; hpWrap.classList.add('shake');
+  dmgOverlay.classList.remove('flash'); void dmgOverlay.offsetWidth; dmgOverlay.classList.add('flash');
+  burst(cookie.x + CW / 2, cookie.y - CH / 2, '#ff4444', 8);
+
+  invincible = true;
+  setTimeout(() => { invincible = false; }, 1500);
+
+  handlePossibleDeath();
+}
+
+function tickDamage() {
+  // เลือดลดเองตามเวลา (ทุก 2 วิ) — แค่เลือดลดเงียบๆ ไม่มีเอฟเฟคเหมือนโดนตี
+  // (ไม่สั่นจอ ไม่แฟลชแดง ไม่มีอนุภาค และไม่ให้ invincibility ชั่วคราว)
+  if (invincible || isSkillInvincible() || hp <= 0 || state !== 'playing') return;
+  hp = Math.max(0, hp - 1);
+  renderHpBar();
+  handlePossibleDeath();
+}
+
+function handlePossibleDeath() {
+  if (hp <= 0) {
+    // ── สกิล revive: ฟื้นคืนชีพได้ครั้งเดียวต่อรอบ ──────────
+    if (CHAR.bonus === 'revive' && !hasRevived) {
+      hasRevived = true;
+      const cfg = SKILLS.revive || SKILLS_FALLBACK.revive;
+      const bonusHp = Math.floor(jellyCount / cfg.jelliesPerBonus) * cfg.hpPerJellies;
+      hp = Math.min(CHAR.maxHp, cfg.reviveHp + bonusHp);
+      renderHpBar();
+      burst(cookie.x + CW / 2, cookie.y - CH / 2, '#b388ff', 18);
+      addFloat(cookie.x + CW / 2, cookie.y - CH - 20, '✨ ฟื้นคืนชีพ!', '#b388ff');
+      invincible = true;
+      setTimeout(() => { invincible = false; }, 1500);
+    } else {
+      setTimeout(die, 400);
+    }
+  }
+}
+
+function addFloat(x, y, text, color) {
+  floats.push({ x, y, vy: -1.4, life: 1, text, color });
+}
+
+function cTop()  { return cookie.y - CH; }
+function cBot()  { return cookie.y; }
+function cLeft() { return cookie.x; }
+function cRight(){ return cookie.x + CW; }
+
+function reset() {
+  score = 0; frame = 0; speed = MAP.speed;
+  cookie.x = 110; cookie.y = GROUND; cookie.vy = 0; cookie.jumps = 0; cookie.alive = true;
+  obs = []; jels = []; pots = []; parts = []; floats.length = 0;
+  obsTimer = 0; jelTimer = 0; obsInterval = MAP.obsInterval;
+  hp = CHAR.maxHp; hpTimer = 0; invincible = false;
+  jellyCount = 0; hasRevived = false; skillTimer = 0; dashing = false; dashFramesLeft = 0;
+  worldScroll = 0;
+  buildWorldPlan(); // pre-generate ทั้งฉากก่อนเริ่ม
+  renderHpBar();
+}
+
+// ══════════════════════════════════════════════════════════
+// INPUT
+// ══════════════════════════════════════════════════════════
+function doJump() {
+  if (!cookie.alive || state !== 'playing') return;
+  if (cookie.jumps < MAX_JUMPS) {
+    cookie.vy = cookie.jumps === 0 ? JUMP1 : JUMP2;
+    cookie.jumps++;
+    burst(cookie.x + CW / 2, cookie.y, '#ffe0b2', 6);
+  }
+}
+document.addEventListener('keydown', e => {
+  if (gameScreenEl.style.display === 'none') return; // ไม่อยู่หน้าเกม ไม่สนใจปุ่ม
+  if (e.code === 'Space' || e.code === 'ArrowUp') {
+    e.preventDefault();
+    if (state !== 'playing') { startGame(); return; }
+    doJump();
+  }
+});
+canvas.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  if (state !== 'playing') { startGame(); return; }
+  doJump();
+});
+
+function startGame() {
+  if (state === 'playing') return;
+  reset(); state = 'playing';
+  overlay.style.display = 'none';
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(loop);
+}
+
+// ══════════════════════════════════════════════════════════
+// PARTICLES
+// ══════════════════════════════════════════════════════════
+function burst(x, y, col, n = 8) {
+  for (let i = 0; i < n; i++)
+    parts.push({ x, y, col, vx:(Math.random()-0.5)*7, vy:-(Math.random()*5+2), life:1, r:3+Math.random()*4 });
+}
+
+// ══════════════════════════════════════════════════════════
+// DRAW — เกม
+// ══════════════════════════════════════════════════════════
+function drawBg() {
+  const sky = ctx.createLinearGradient(0, 0, 0, GH);
+  sky.addColorStop(0, MAP.sky[0]); sky.addColorStop(0.6, MAP.sky[1]); sky.addColorStop(1, MAP.sky[2]);
+  ctx.fillStyle = sky; ctx.fillRect(0, 0, GW, GH);
+
+  if (MAP_OBJ.id === 'space' || MAP_OBJ.id === 'lava') {
+    for (let i = 0; i < 30; i++) {
+      const sx = ((i * 137 + frame * 0.05) % GW), sy = ((i * 97 + 13) % GH * 0.6);
+      ctx.fillStyle = MAP_OBJ.id === 'space'
+        ? `rgba(200,200,255,${0.3 + 0.4 * (i % 3 / 3)})`
+        : `rgba(255,100,0,${0.2 + 0.3 * (i % 3 / 3)})`;
+      ctx.beginPath(); ctx.arc(sx, sy, 0.8 + i % 2, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+
+  const off = (frame * speed * 0.18) % GW;
+  clouds.forEach(cl => {
+    const bx = ((cl.x - off * cl.s + GW * 2) % GW);
+    ctx.fillStyle = MAP.acc + '11';
+    ctx.beginPath(); ctx.ellipse(bx, cl.y, cl.w, 18, 0, 0, Math.PI * 2); ctx.fill();
+  });
+
+  const g = ctx.createLinearGradient(0, GROUND, 0, GH);
+  g.addColorStop(0, MAP.ground[0]); g.addColorStop(1, MAP.ground[1]);
+  ctx.fillStyle = g; ctx.fillRect(0, GROUND, GW, GH - GROUND);
+  ctx.fillStyle = MAP.acc + 'aa'; ctx.fillRect(0, GROUND, GW, 3);
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1;
+  const tOff = (frame * speed) % 80;
+  for (let tx = -tOff; tx < GW; tx += 80) {
+    ctx.beginPath(); ctx.moveTo(tx, GROUND); ctx.lineTo(tx, GH); ctx.stroke();
+  }
+}
+
+function drawCookie() {
+  const cx = cookie.x + CW / 2, cy = cookie.y - CH / 2;
+  ctx.save();
+  if (invincible && Math.floor(frame / 4) % 2 === 0) ctx.globalAlpha = 0.3;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath(); ctx.ellipse(cx, cookie.y + 3, CW / 2, 7, 0, 0, Math.PI * 2); ctx.fill();
+
+  // ── สกิล dash: แสงเรืองรอบตัวขณะพุ่ง+อมตะ ──────────────
+  if (CHAR.bonus === 'dash' && dashing) {
+    ctx.save();
+    ctx.globalAlpha = 0.45;
+    ctx.strokeStyle = '#fff176'; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.arc(cx, cy, CH / 2 + 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  const gr = ctx.createRadialGradient(cx - 6, cy - 6, 3, cx, cy, CH / 2);
+  gr.addColorStop(0, CHAR.body[2]); gr.addColorStop(0.5, CHAR.body[1]); gr.addColorStop(1, CHAR.body[0]);
+  ctx.beginPath(); ctx.arc(cx, cy, CH / 2, 0, Math.PI * 2); ctx.fillStyle = gr; ctx.fill();
+
+  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.moveTo(cx - 9, cy - 4); ctx.lineTo(cx - 2, cy + 4); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(cx + 3, cy - 8); ctx.lineTo(cx + 10, cy - 1); ctx.stroke();
+
+  if (CHAR.id === 'ghost') {
+    ctx.strokeStyle = 'rgba(180,180,255,0.35)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 1.5); ctx.stroke();
+  } else {
+    [[cx-10,cy-3,4],[cx+6,cy+5,3.5],[cx-3,cy+9,3]].forEach(([bx,by,r]) => {
+      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = CHAR.chip; ctx.fill();
+    });
+  }
+
+  const ey = cy - 7;
+  if (cookie.alive) {
+    ctx.fillStyle = CHAR.id === 'ghost' ? '#8080ff' : '#1a0800';
+    ctx.beginPath(); ctx.arc(cx - 7, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 7, ey, 3.5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = CHAR.eye || '#fff';
+    ctx.beginPath(); ctx.arc(cx - 5.5, ey - 1, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(cx + 8.5, ey - 1, 1.2, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#1a0800'; ctx.lineWidth = 2;
+    if (CHAR.id === 'ghost') {
+      ctx.beginPath(); ctx.arc(cx, cy + 5, 6, 0.1, Math.PI - 0.1, true); ctx.stroke();
+    } else {
+      ctx.beginPath(); ctx.arc(cx, cy + 5, 6, 0.1, Math.PI - 0.1); ctx.stroke();
+    }
+  } else {
+    ctx.strokeStyle = '#1a0800'; ctx.lineWidth = 2.5;
+    [[-7],[7]].forEach(([ex]) => {
+      ctx.beginPath(); ctx.moveTo(cx+ex-3.5, ey-3.5); ctx.lineTo(cx+ex+3.5, ey+3.5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(cx+ex+3.5, ey-3.5); ctx.lineTo(cx+ex-3.5, ey+3.5); ctx.stroke();
+    });
+  }
+
+  if (cookie.alive) {
+    const leg = Math.sin(frame * 0.3) * 10;
+    ctx.strokeStyle = CHAR.body[0]; ctx.lineWidth = 6; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(cx-8, cookie.y-6); ctx.lineTo(cx-12+leg, cookie.y+9); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cx+8, cookie.y-6); ctx.lineTo(cx+12-leg, cookie.y+9); ctx.stroke();
+    ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(cx-16, cy+4); ctx.lineTo(cx-24, cy-2+Math.sin(frame*0.2)*4); ctx.stroke();
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
+// roundRect ของ Canvas API ใหม่เกินไปสำหรับมือถือ/WebView รุ่นเก่าบางรุ่น
+// (ไม่มีฟังก์ชันนี้ → throw error → loop หยุดเงียบๆ ทำให้เกมดู "ค้าง")
+// ใช้ arcTo แทนซึ่งรองรับเบราว์เซอร์ได้กว้างกว่ามาก
+function rrectPath(c, x, y, w, h, r) {
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.lineTo(x + w - r, y);
+  c.arcTo(x + w, y, x + w, y + r, r);
+  c.lineTo(x + w, y + h - r);
+  c.arcTo(x + w, y + h, x + w - r, y + h, r);
+  c.lineTo(x + r, y + h);
+  c.arcTo(x, y + h, x, y + h - r, r);
+  c.lineTo(x, y + r);
+  c.arcTo(x, y, x + r, y, r);
+  c.closePath();
+}
+
+function drawObs(o) {
+  ctx.save();
+  if (o.type === 'air') {
+    const og = ctx.createRadialGradient(o.x+o.w/2, o.y+o.h/2, 2, o.x+o.w/2, o.y+o.h/2, o.w/2);
+    og.addColorStop(0, MAP.acc+'ff'); og.addColorStop(0.5, MAP.acc+'99'); og.addColorStop(1,'rgba(0,0,0,0)');
+    ctx.fillStyle = og;
+    ctx.beginPath(); ctx.ellipse(o.x+o.w/2, o.y+o.h/2, o.w/2, o.h/2, 0, 0, Math.PI*2); ctx.fill();
+  } else {
+    const wg = ctx.createLinearGradient(o.x, o.y, o.x+o.w, o.y+o.h);
+    wg.addColorStop(0,'#9e7a50'); wg.addColorStop(1,'#5c3d1e');
+    ctx.fillStyle = wg;
+    rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.fill();
+    ctx.strokeStyle = '#3d2000'; ctx.lineWidth = 1.5; ctx.stroke();
+    for (let r = o.y+13; r < o.y+o.h; r += 14) {
+      ctx.strokeStyle = 'rgba(40,15,0,0.3)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(o.x, r); ctx.lineTo(o.x+o.w, r); ctx.stroke();
+    }
+    ctx.beginPath(); ctx.moveTo(o.x+o.w/2, o.y); ctx.lineTo(o.x+o.w/2, o.y+o.h); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+function drawJel(j) {
+  if (j.done) return;
+  const bobY = j.trail ? Math.sin(frame * 0.08 + j.bob) * 3 : Math.sin(frame * 0.08 + j.bob) * 5;
+  ctx.save();
+
+  if (j.trail) {
+    // เยลลี่ guideline — เล็กกว่า, สีฟ้าอ่อน, มี glow นำทาง
+    ctx.globalAlpha = 0.82;
+    ctx.beginPath(); ctx.arc(j.x, j.y + bobY, j.r, 0, Math.PI * 2);
+    const jg = ctx.createRadialGradient(j.x - 2, j.y + bobY - 2, 1, j.x, j.y + bobY, j.r);
+    jg.addColorStop(0, '#fffde7'); jg.addColorStop(1, '#ffcc02');
+    ctx.fillStyle = jg; ctx.fill();
+    // แสง glow รอบๆ
+    ctx.globalAlpha = 0.18;
+    ctx.beginPath(); ctx.arc(j.x, j.y + bobY, j.r + 5, 0, Math.PI * 2);
+    ctx.fillStyle = '#ffee58'; ctx.fill();
+    ctx.globalAlpha = 0.82;
+    // highlight
+    ctx.fillStyle = 'rgba(255,255,255,0.65)';
+    ctx.beginPath(); ctx.arc(j.x - 2, j.y + bobY - 2, 2.5, 0, Math.PI * 2); ctx.fill();
+  } else {
+    ctx.beginPath(); ctx.arc(j.x, j.y+bobY, j.r, 0, Math.PI*2);
+    const jg = ctx.createRadialGradient(j.x-3, j.y+bobY-3, 2, j.x, j.y+bobY, j.r);
+    if (j.special) {
+      jg.addColorStop(0,'#fff59d'); jg.addColorStop(1,'#ffb300');
+    } else {
+      jg.addColorStop(0,'#ff80ab'); jg.addColorStop(1,'#e91e63');
+    }
+    ctx.fillStyle = jg; ctx.fill();
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.beginPath(); ctx.arc(j.x-3, j.y+bobY-3, 3, 0, Math.PI*2); ctx.fill();
+    if (j.special) {
+      ctx.fillStyle = '#ffb300';
+      ctx.beginPath(); ctx.arc(j.x-j.r*0.55, j.y+bobY-j.r*0.7, 3, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(j.x+j.r*0.55, j.y+bobY-j.r*0.7, 3, 0, Math.PI*2); ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+
+function drawPot(p) {
+  if (p.done) return;
+  const bobY = Math.sin(frame * 0.08 + p.bob) * 5;
+  ctx.save();
+  ctx.translate(p.x, p.y + bobY);
+  ctx.fillStyle = '#80deea'; ctx.fillRect(-3, -p.h/2-6, 6, 6);
+  ctx.fillStyle = '#4dd0e1';
+  rrectPath(ctx, -p.w/2, -p.h/2, p.w, p.h, 4); ctx.fill();
+  ctx.strokeStyle = '#00838f'; ctx.lineWidth = 1.5;
+  rrectPath(ctx, -p.w/2, -p.h/2, p.w, p.h, 4); ctx.stroke();
+  ctx.fillStyle = '#fff'; ctx.font = 'bold 11px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('+', 0, 1);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  ctx.restore();
+}
+
+// ══════════════════════════════════════════════════════════
+// WORLD PLAN — pre-generate ฉากทั้งหมดล่วงหน้า
+// obstacle + safe-path jelly trail คำนวณพร้อมกันก่อนเกมเริ่ม
+// ══════════════════════════════════════════════════════════
+
+// plan = array of { worldX, type:'obs'|'jel'|'pot', ...data }
+// worldX คือระยะจาก spawn point (pixel) — แปลงเป็น screen X ทุกเฟรม
+let worldPlan = [];   // รายการ event ทั้งหมดในฉาก
+let preBuiltWorldPlan = null; // แมพที่คำนวณไว้ล่วงหน้าตอนหน้าโหลด (กันแล็คตอนเข้าเกม)
+let worldScroll = 0; // จำนวน pixel ที่ scroll ไปแล้ว (worldX - worldScroll = screen X)
+const PLAN_LENGTH = 80000; // ความยาวฉาก (pixel) ก่อนวนซ้ำ
+const JELLY_SPACING = 32;  // ระยะห่างระหว่างเยลลี่แต่ละลูกบน path
+
+function buildWorldPlan() {
+  // ── ใช้แมพที่คำนวณไว้ล่วงหน้าแล้ว (ตอนหน้าโหลด) ถ้ามี ──────
+  // เพื่อไม่ต้องคำนวณซ้ำตอนกดเริ่ม/ตอนวนแมพ → ไม่แล็ค
+  if (preBuiltWorldPlan && preBuiltWorldPlan.length) {
+    worldPlan = preBuiltWorldPlan;
+  } else {
+    // fallback เผื่อกรณีไม่ผ่านหน้าโหลด (ไม่ควรเกิดขึ้นในเส้นทางปกติ)
+    worldPlan = buildWorldPlanFromPattern(MAP_OBJ.id, MAP.speed, CHAR.maxHp);
+  }
+  worldPlanIdx = 0;
+}
+
+let worldPlanIdx = 0; // index ถัดไปที่ยังไม่ spawn
+
+function spawnJel(special = false) {
+  if (special) {
+    const cfg = SKILLS.yellowJelly || SKILLS_FALLBACK.yellowJelly;
+    jels.push({
+      x: cookie.x + 150, y: GROUND - 65,
+      r: 13, bob: 0, done: false,
+      special: true, val: cfg.jellyScore,
+    });
+  }
+}
+
+function spawnPot() {
+  pots.push({ x: GW + 10, y: GROUND - 65, w: 16, h: 22, bob: 0, done: false });
+}
+
+function loop() {
+  if (state !== 'playing') return;
+  try {
+    runFrame();
+  } catch (err) {
+    // กันไม่ให้เกม "ค้าง" สนิทถ้าเจอ error ที่ไม่คาดคิด (เช่น browser
+    // รุ่นเก่าไม่รองรับบาง API) — ข้ามเฟรมที่พังแล้ววิ่งต่อ พร้อม log
+    // ข้อความ error จริงไว้ใน console เพื่อหาสาเหตุได้
+    console.error('🍪 เกม error ที่เฟรม', frame, '—', err);
+  }
+  raf = requestAnimationFrame(loop);
+}
+
+function runFrame() {
+  frame++;
+
+  hpTimer++;
+  if (hpTimer >= HP_TICK_FRAMES) {
+    hpTimer = 0;
+    tickDamage();
+  }
+
+  const mult = 1.0;
+  speed = MAP.speed;
+  if (CHAR.bonus === 'dash' && dashing) {
+    const cfg = SKILLS.dash || SKILLS_FALLBACK.dash;
+    speed *= cfg.speedMult;
+  }
+
+  cookie.vy += 0.7; cookie.y += cookie.vy;
+  if (cookie.y >= GROUND) { cookie.y = GROUND; cookie.vy = 0; cookie.jumps = 0; }
+
+  // ── World scroll: เลื่อน scroll counter และ spawn จาก plan ──
+  worldScroll += speed;
+
+  // spawn events ที่ถึงเวลา (worldX - worldScroll = screen X)
+  while (worldPlanIdx < worldPlan.length) {
+    const ev = worldPlan[worldPlanIdx];
+    const screenX = ev.worldX - worldScroll;
+    if (screenX > GW + 20) break; // ยังไม่ถึง
+    worldPlanIdx++;
+    if (ev.kind === 'obs') {
+      obs.push({ x: screenX, y: ev.y, w: ev.w, h: ev.h, type: ev.type });
+    } else if (ev.kind === 'jel') {
+      jels.push({ x: screenX, y: ev.y, r: ev.r, bob: ev.bob, done: false, special: false, val: ev.val, trail: true });
+    }
+  }
+  // ถ้าหมด plan แล้ว → rebuild ฉากใหม่จาก pattern เดิม (loop)
+  if (worldPlanIdx >= worldPlan.length) {
+    worldScroll = 0;
+    buildWorldPlan();
+  }
+
+  obs = obs.filter(o => o.x + o.w > -10);
+  obs.forEach(o => o.x -= speed);
+
+  jels = jels.filter(j => j.x + j.r > -10);
+  jels.forEach(j => j.x -= speed);
+
+  pots = pots.filter(p => p.x + p.w/2 > -10);
+  pots.forEach(p => p.x -= speed);
+
+  // ── ระบบสกิล (ตัวเลขมาจาก /api/skills บนเซิฟเวอร์) ──────
+  if (CHAR.bonus === 'yellowJelly') {
+    const cfg = SKILLS.yellowJelly || SKILLS_FALLBACK.yellowJelly;
+    skillTimer++;
+    if (skillTimer >= cfg.cooldownSec * 60) { skillTimer = 0; spawnJel(true); }
+  } else if (CHAR.bonus === 'healPotion') {
+    const cfg = SKILLS.healPotion || SKILLS_FALLBACK.healPotion;
+    skillTimer++;
+    if (skillTimer >= cfg.cooldownSec * 60) { skillTimer = 0; spawnPot(); }
+  } else if (CHAR.bonus === 'dash') {
+    const cfg = SKILLS.dash || SKILLS_FALLBACK.dash;
+    if (dashFramesLeft > 0) {
+      dashFramesLeft--;
+      if (dashFramesLeft === 0) dashing = false;
+    } else {
+      skillTimer++;
+      if (skillTimer >= cfg.cooldownSec * 60) {
+        skillTimer = 0; dashing = true; dashFramesLeft = cfg.durationSec * 60;
+        addFloat(cookie.x + CW/2, cookie.y - CH - 22, '⚡ พุ่ง!', '#fff176');
+      }
+    }
+  }
+
+  parts = parts.filter(p => p.life > 0);
+  parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.vy += 0.35; p.life -= 0.045; });
+
+  for (let i = floats.length - 1; i >= 0; i--) {
+    floats[i].y += floats[i].vy; floats[i].life -= 0.025;
+    if (floats[i].life <= 0) floats.splice(i, 1);
+  }
+
+  score += 0.13 * SCORE_MULT;
+  if (score > best) best = score;
+  document.getElementById('sc').textContent = Math.floor(score);
+  document.getElementById('hi').textContent = Math.floor(best);
+
+  // ── Collision ─────────────────────────────────────────
+  const PAD = 5;
+  const cl = cLeft()+PAD, cr = cRight()-PAD, ct = cTop()+PAD, cb = cBot()-PAD;
+  const skillInv = isSkillInvincible();
+  for (const o of obs) {
+    if (cr > o.x && cl < o.x+o.w && cb > o.y && ct < o.y+o.h) {
+      if (!invincible && !skillInv) {
+        addFloat(cookie.x + CW/2, cookie.y - CH - 8, '-1 ❤', '#ff5252');
+        takeDamage();
+      }
+      o.x -= speed * 6;
+      break;
+    }
+  }
+
+  // ── Jelly collect ──────────────────────────────────────
+  jels.forEach(j => {
+    if (j.done) return;
+    const dx = cookie.x + CW/2 - j.x, dy = (cookie.y - CH/2) - j.y;
+    if (dx*dx + dy*dy < (CH/2 + j.r) * (CH/2 + j.r)) {
+      j.done = true;
+      jellyCount++;
+      let gain = (j.val || 7) * SCORE_MULT;
+      if (CHAR.bonus === 'jellyBonus') {
+        const cfg = SKILLS.jellyBonus || SKILLS_FALLBACK.jellyBonus;
+        gain += cfg.bonus;
+      }
+      score += gain;
+      const col = j.special ? '#ffd54f' : '#ff80ab';
+      burst(j.x, j.y, col, j.special ? 16 : 10);
+      addFloat(j.x, j.y - 14, `+${Math.round(gain)}`, col);
+    }
+  });
+
+  // ── Heal potion collect (สกิล healPotion) ───────────────
+  pots.forEach(p => {
+    if (p.done) return;
+    const dx = cookie.x + CW/2 - p.x, dy = cookie.y - CH/2 - p.y;
+    if (Math.abs(dx) < (CW/2 + p.w/2) && Math.abs(dy) < (CH/2 + p.h/2)) {
+      p.done = true;
+      const cfg = SKILLS.healPotion || SKILLS_FALLBACK.healPotion;
+      hp = Math.min(CHAR.maxHp, hp + cfg.healAmount);
+      renderHpBar();
+      hpBarInner.classList.remove('heal'); void hpBarInner.offsetWidth; hpBarInner.classList.add('heal');
+      burst(p.x, p.y, '#4dd0e1', 10);
+      addFloat(p.x, p.y - 14, `+${cfg.healAmount} ❤`, '#4dd0e1');
+    }
+  });
+
+  // ── Draw ─────────────────────────────────────────────
+  ctx.clearRect(0, 0, GW, GH);
+  drawBg(); obs.forEach(drawObs);
+
+  // วาดเส้นเชื่อมระหว่างเยลลี่ trail (guideline)
+  const trailJels = jels.filter(j => !j.done && j.trail);
+  // จัดกลุ่ม wave โดยดูจากช่องว่างระหว่าง x
+  if (trailJels.length > 1) {
+    ctx.save();
+    ctx.setLineDash([4, 6]);
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(255, 220, 50, 0.28)';
+    ctx.beginPath();
+    for (let i = 0; i < trailJels.length; i++) {
+      const j = trailJels[i];
+      const bobY = Math.sin(frame * 0.08 + j.bob) * 3;
+      if (i === 0) ctx.moveTo(j.x, j.y + bobY);
+      else {
+        // ข้ามถ้า gap ใหญ่เกิน (คนละ wave)
+        const prev = trailJels[i - 1];
+        if (j.x - prev.x > JELLY_SPACING * 2) ctx.moveTo(j.x, j.y + bobY);
+        else ctx.lineTo(j.x, j.y + bobY);
+      }
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+  }
+
+  jels.forEach(drawJel); pots.forEach(drawPot); drawCookie();
+
+  parts.forEach(p => {
+    ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
+    const a = Math.floor(p.life * 255).toString(16).padStart(2,'0');
+    ctx.fillStyle = p.col + a; ctx.fill();
+  });
+
+  floats.forEach(f => {
+    ctx.globalAlpha = Math.min(1, f.life * 3);
+    ctx.font = 'bold 15px "Segoe UI", sans-serif';
+    ctx.fillStyle = f.color;
+    ctx.textAlign = 'center';
+    ctx.strokeStyle = 'rgba(0,0,0,0.6)'; ctx.lineWidth = 3;
+    ctx.strokeText(f.text, f.x, f.y);
+    ctx.fillText(f.text, f.x, f.y);
+    ctx.textAlign = 'left';
+    ctx.globalAlpha = 1;
+  });
+
+}
+
+function die() {
+  if (!cookie.alive) return;
+  cookie.alive = false;
+  cancelAnimationFrame(raf);
+  burst(cookie.x + CW/2, cookie.y - CH/2, '#d4804a', 14);
+  state = 'dead';
+  ctx.clearRect(0,0,GW,GH); drawBg(); obs.forEach(drawObs); jels.forEach(drawJel); pots.forEach(drawPot); drawCookie();
+  setTimeout(showDead, 700);
+}
+
+function showDead() {
+  overlayIdleEl.style.display = 'none';
+  overlayDeadEl.style.display = '';
+  document.getElementById('deadScore').textContent = Math.floor(score);
+  document.getElementById('deadBest').textContent = Math.floor(best);
+  overlay.style.display = 'flex';
+}
+
+// ══════════════════════════════════════════════════════════
+// LOBBY — BG EMBER ANIMATION
+// ══════════════════════════════════════════════════════════
+function animBg() {
+  bgCtx.clearRect(0, 0, bgC.width, bgC.height);
+  const g = bgCtx.createLinearGradient(0, 0, 0, bgC.height);
+  g.addColorStop(0, '#0d0200'); g.addColorStop(0.6, '#1a0700'); g.addColorStop(1, '#2d0d00');
+  bgCtx.fillStyle = g; bgCtx.fillRect(0, 0, bgC.width, bgC.height);
+  embers.forEach(e => {
+    e.x += e.vx; e.y += e.vy; e.life += 0.006;
+    if (e.life > 1 || e.y < -10) { e.x = Math.random() * bgC.width; e.y = bgC.height + 5; e.life = 0; }
+    const a = Math.sin(e.life * Math.PI) * 0.7;
+    bgCtx.beginPath(); bgCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
+    bgCtx.fillStyle = `hsla(${e.hue},100%,65%,${a})`; bgCtx.fill();
+  });
+  requestAnimationFrame(animBg);
+}
+
+// ══════════════════════════════════════════════════════════
+// LOBBY — DRAW PREVIEWS
+// ══════════════════════════════════════════════════════════
+function drawCharPreview(cv, ch) {
+  const c = cv.getContext('2d');
+  const S = 50;
+  cv.width = S; cv.height = S;
+  const cx = S / 2, cy = S / 2;
+  const gr = c.createRadialGradient(cx - 5, cy - 5, 3, cx, cy, S / 2 - 2);
+  gr.addColorStop(0, ch.bodyColor[2]); gr.addColorStop(0.5, ch.bodyColor[1]); gr.addColorStop(1, ch.bodyColor[0]);
+  c.beginPath(); c.arc(cx, cy, S / 2 - 2, 0, Math.PI * 2); c.fillStyle = gr; c.fill();
+  if (ch.id === 'ghost') {
+    c.strokeStyle = 'rgba(200,200,255,0.4)'; c.lineWidth = 2;
+    c.beginPath(); c.arc(cx, cy, 10, 0, Math.PI * 1.5); c.stroke();
+  } else {
+    [[cx - 8, cy - 2, 3], [cx + 4, cy + 4, 2.5], [cx - 2, cy + 8, 2]].forEach(([bx, by, r]) => {
+      c.beginPath(); c.arc(bx, by, r, 0, Math.PI * 2); c.fillStyle = ch.chipColor; c.fill();
+    });
+  }
+  const ey = cy - 6;
+  c.fillStyle = ch.id === 'ghost' ? '#8080ff' : '#1a0800';
+  c.beginPath(); c.arc(cx - 5, ey, 2.5, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(cx + 5, ey, 2.5, 0, Math.PI * 2); c.fill();
+  c.fillStyle = ch.eyeColor || '#fff';
+  c.beginPath(); c.arc(cx - 4, ey - 1, 1, 0, Math.PI * 2); c.fill();
+  c.beginPath(); c.arc(cx + 6, ey - 1, 1, 0, Math.PI * 2); c.fill();
+  if (ch.id === 'ghost') {
+    c.strokeStyle = '#8080ff'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(cx, cy + 5, 5, 0.1, Math.PI - 0.1, true); c.stroke();
+  } else {
+    c.strokeStyle = '#1a0800'; c.lineWidth = 1.5;
+    c.beginPath(); c.arc(cx, cy + 4, 5, 0.1, Math.PI - 0.1); c.stroke();
+  }
+  const badges = { yellowJelly:'🐻', dash:'⚡', jellyBonus:'★', healPotion:'💧', revive:'💫' };
+  if (ch.bonus && badges[ch.bonus]) {
+    c.font = '10px serif'; c.fillStyle = 'rgba(0,0,0,0.5)';
+    c.beginPath(); c.arc(cx + 14, cy - 14, 8, 0, Math.PI * 2); c.fill();
+    c.fillStyle = '#ffcc02'; c.textAlign = 'center'; c.textBaseline = 'middle';
+    c.fillText(badges[ch.bonus], cx + 14, cy - 14);
+  }
+}
+
+function drawMapPreview(cv, map) {
+  const c = cv.getContext('2d');
+  const W = 120, H = 38;
+  cv.width = W; cv.height = H;
+  const sg = c.createLinearGradient(0, 0, 0, H);
+  sg.addColorStop(0, map.sky[0]); sg.addColorStop(0.6, map.sky[1]); sg.addColorStop(1, map.sky[2]);
+  c.fillStyle = sg; c.fillRect(0, 0, W, H);
+  const gg = c.createLinearGradient(0, H * 0.65, 0, H);
+  gg.addColorStop(0, map.ground[0]); gg.addColorStop(1, map.ground[1]);
+  c.fillStyle = gg; c.fillRect(0, H * 0.65, W, H * 0.35);
+  c.fillStyle = map.accent + '88'; c.fillRect(0, H * 0.65, W, 2);
+  c.fillStyle = map.accent + '66';
+  rrectPath(c, W * 0.7, H * 0.45, 7, H * 0.2, 2); c.fill();
+  c.fillStyle = map.accent + '22';
+  c.beginPath(); c.ellipse(W * 0.5, H * 0.3, W * 0.3, H * 0.15, 0, 0, Math.PI * 2); c.fill();
+}
+
+// ══════════════════════════════════════════════════════════
+// LOBBY — BUILD UI (CHARS / MAPS จาก gameData.js)
+// ══════════════════════════════════════════════════════════
+const charGrid = document.getElementById('charGrid');
+CHARS.forEach(ch => {
+  const card = document.createElement('div');
+  card.className = 'char-card' + (ch.id === selChar ? ' selected' : '');
+  card.dataset.id = ch.id;
+  const av = document.createElement('div'); av.className = 'char-avatar';
+  const cv = document.createElement('canvas');
+  drawCharPreview(cv, ch);
+  av.appendChild(cv);
+  const nm = document.createElement('div'); nm.className = 'char-name'; nm.textContent = ch.name;
+  const ds = document.createElement('div'); ds.className = 'char-desc'; ds.textContent = ch.desc;
+  card.appendChild(av); card.appendChild(nm); card.appendChild(ds);
+  card.addEventListener('click', () => selectChar(ch.id));
+  charGrid.appendChild(card);
+});
+
+const mapGrid = document.getElementById('mapGrid');
+MAPS.forEach(mp => {
+  const card = document.createElement('div');
+  card.className = 'map-card' + (mp.id === selMap ? ' selected' : '');
+  card.dataset.id = mp.id;
+  const prev = document.createElement('div'); prev.className = 'map-preview';
+  const cv = document.createElement('canvas');
+  drawMapPreview(cv, mp);
+  prev.appendChild(cv);
+  const nm = document.createElement('div'); nm.className = 'map-name'; nm.textContent = mp.name;
+  const tg = document.createElement('div'); tg.className = 'map-tag';  tg.textContent = mp.tag;
+  card.appendChild(prev); card.appendChild(nm); card.appendChild(tg);
+  card.addEventListener('click', () => selectMap(mp.id));
+  mapGrid.appendChild(card);
+});
+
+function selectChar(id) {
+  selChar = id;
+  document.querySelectorAll('.char-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+  updateInfo();
+}
+function selectMap(id) {
+  selMap = id;
+  document.querySelectorAll('.map-card').forEach(c => c.classList.toggle('selected', c.dataset.id === id));
+  updateInfo();
+}
+function updateInfo() {
+  const ch = CHARS.find(c => c.id === selChar);
+  const mp = MAPS.find(m => m.id === selMap);
+  document.getElementById('selectedInfo').textContent = `${ch.name} บน ${mp.name}`;
+}
+updateInfo();
+
+// ══════════════════════════════════════════════════════════
+// ปุ่มต่างๆ
+// ══════════════════════════════════════════════════════════
+document.getElementById('startBtn').addEventListener('click', () => {
+  goFullscreenLandscape(() => { resizeBg(); resize(); });
+  startLoadingThenGame(selChar, selMap);
+});
+document.getElementById('playBtn').addEventListener('click', startGame);
+document.getElementById('lobbyBtn').addEventListener('click', showLobbyScreen);
+document.getElementById('playAgainBtn').addEventListener('click', startGame);
+document.getElementById('lobbyBtn2').addEventListener('click', showLobbyScreen);
+document.getElementById('fsBtn').addEventListener('click', () => {
+  goFullscreenLandscape(() => { resize(); resizeBg(); });
+});
+
+// ══════════════════════════════════════════════════════════
+// BOOT — script โหลดหลังหมุนจอแล้ว → เริ่มล็อบบี้เลย
+// fullscreen จะถูกขอตอนกด startBtn เท่านั้น
+// ══════════════════════════════════════════════════════════
+resizeBg();
+animBg();
+resize();
+updateFsBtn(); // แสดง/ซ่อนปุ่ม fullscreen ตามสถานะปัจจุบัน
+
+// re-lock orientation ถ้าหมุนระหว่างเล่น
+window.addEventListener('orientationchange', () => {
+  setTimeout(() => goFullscreenLandscape(), 300);
+});
+if (screen.orientation) {
+  screen.orientation.addEventListener('change', () => {
+    setTimeout(() => goFullscreenLandscape(), 300);
+  });
+}
+</script>
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js').catch((err) => {
+        console.warn('ลงทะเบียน service worker ไม่สำเร็จ', err);
+      });
+    });
+  }
+</script>
+</body>
+</html>
