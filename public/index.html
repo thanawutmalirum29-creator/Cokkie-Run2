@@ -114,7 +114,7 @@ html, body {
 
 /* ── ปุ่มหยุดเกมชั่วคราว (มุมขวาบนของจอเกม) ── */
 #pauseBtn {
-  position:absolute; top:8px; right:8px; z-index:15;
+  position:absolute; top:54px; right:8px; z-index:15;
   background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,107,53,0.55);
   border-radius:9px; color:#ffb74d; font-size:15px;
   width:32px; height:32px; cursor:pointer;
@@ -1357,7 +1357,13 @@ function runFrame() {
   }
   // ถ้าหมด plan แล้ว → rebuild ฉากใหม่จาก pattern เดิม (loop)
   if (worldPlanIdx >= worldPlan.length) {
-    worldScroll = 0;
+    // หัก planEnd ออกจาก worldScroll แทนการ reset = 0
+    // เพื่อให้ obs/jel ที่ยังอยู่บนจอไม่กระโดดพรึ่บ
+    const planEnd = worldPlan.length > 0 ? worldPlan[worldPlan.length - 1].worldX + 1 : 0;
+    worldScroll -= planEnd;
+    obs.forEach(o => o.x += planEnd);
+    jels.forEach(j => j.x += planEnd);
+    pots.forEach(p => p.x += planEnd);
     buildWorldPlan();
   }
 
