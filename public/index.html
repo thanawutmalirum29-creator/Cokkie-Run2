@@ -1235,6 +1235,7 @@ function drawJel(j) {
     }
   }
   ctx.restore();
+  ctx.globalAlpha = 1;
 }
 
 function drawPot(p) {
@@ -1332,7 +1333,7 @@ function tickStream() {
       obs.push({ x: sx, y: ev.y, w: ev.w, h: ev.h, type: ev.type });
     } else if (ev.kind === 'jel') {
       jels.push({ x: sx, y: ev.y, r: ev.r, bob: ev.bob, done: false,
-                  special: ev.special, val: ev.val, trail: true });
+                  special: ev.special, val: ev.val, trail: false });
     }
     // emit tile ใหม่ทดแทนทุกครั้งที่ spawn
     fillStream();
