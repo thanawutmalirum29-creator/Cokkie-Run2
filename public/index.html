@@ -103,6 +103,29 @@ html, body {
 #fsBtn:hover { background:rgba(255,107,53,0.25); }
 #fsBtn:active { transform:scale(0.9); }
 
+/* ── ป้ายเวอร์ชันแอป มุมซ้ายล่าง ── */
+#appVersion {
+  position:fixed; left:8px; bottom:6px; z-index:6;
+  font-size:10px; font-weight:500; letter-spacing:0.3px;
+  color:#ff8a65; opacity:0.45;
+  pointer-events:none; user-select:none;
+  font-family:'Segoe UI',sans-serif;
+}
+
+/* ── ปุ่มหยุดเกมชั่วคราว (มุมขวาบนของจอเกม) ── */
+#pauseBtn {
+  position:absolute; top:8px; right:8px; z-index:15;
+  background:rgba(0,0,0,0.55); border:1.5px solid rgba(255,107,53,0.55);
+  border-radius:9px; color:#ffb74d; font-size:15px;
+  width:32px; height:32px; cursor:pointer;
+  display:none; align-items:center; justify-content:center;
+  pointer-events:auto; touch-action:manipulation;
+  box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  transition:transform 0.12s, background 0.15s;
+}
+#pauseBtn:hover  { background:rgba(255,107,53,0.25); }
+#pauseBtn:active { transform:scale(0.9); }
+
 /* ══════════════════════════════════════════════════════════
    LOBBY SCREEN
    ══════════════════════════════════════════════════════════ */
@@ -578,6 +601,7 @@ canvas { display:block; }
   <p>หมุนโทรศัพท์แนวนอน<br>เพื่อเล่นเกม! 🍪</p>
 </div>
 <button id="fsBtn">⛶</button>
+<div id="appVersion">cookie-run-v2.0.2</div>
 
 <!-- ══════════ LOBBY SCREEN ══════════ -->
 <div id="lobbyScreen">
@@ -652,6 +676,8 @@ canvas { display:block; }
     <canvas id="c"></canvas>
     <div id="dmgOverlay"></div>
 
+    <button id="pauseBtn">⏸</button>
+
     <div id="ui">
       <div class="sbox">🍪 <span id="sc">0</span></div>
       <div class="sbox">🏆 <span id="hi">0</span></div>
@@ -684,6 +710,11 @@ canvas { display:block; }
         </div>
         <button class="btn-play"  id="playAgainBtn">🔄 เล่นอีกครั้ง!</button>
         <button class="btn-lobby" id="lobbyBtn2">← เปลี่ยนตัวละคร/แมพ</button>
+      </div>
+      <div id="overlayPaused" style="display:none">
+        <h1>⏸ หยุดชั่วคราว</h1>
+        <button class="btn-play"  id="resumeBtn">▶ ดำเนินการต่อ</button>
+        <button class="btn-lobby" id="lobbyBtn3">← กลับหน้าล็อบบี้</button>
       </div>
     </div>
   </div>
@@ -764,6 +795,8 @@ const ctx    = canvas.getContext('2d');
 const overlay       = document.getElementById('overlay');
 const overlayIdleEl  = document.getElementById('overlayIdle');
 const overlayDeadEl  = document.getElementById('overlayDead');
+const overlayPausedEl = document.getElementById('overlayPaused');
+const pauseBtnEl     = document.getElementById('pauseBtn');
 const hpBarInner = document.getElementById('hpBarInner');
 const hpText     = document.getElementById('hpText');
 const hpWrap     = document.getElementById('hpWrap');
@@ -834,6 +867,8 @@ function showGameScreenWith(charId, mapId) {
   updateOverlayDesc();
   overlayIdleEl.style.display = '';
   overlayDeadEl.style.display = 'none';
+  overlayPausedEl.style.display = 'none';
+  pauseBtnEl.style.display = 'none';
   overlay.style.display = 'flex';
   state = 'idle';
   lobbyScreenEl.style.display = 'none';
@@ -1004,6 +1039,7 @@ function doJump() {
 }
 document.addEventListener('keydown', e => {
   if (gameScreenEl.style.display === 'none') return; // ไม่อยู่หน้าเกม ไม่สนใจปุ่ม
+  if (state === 'paused') return; // หยุดชั่วคราวอยู่ ไม่รับอินพุตกระโดด
   if (e.code === 'Space' || e.code === 'ArrowUp') {
     e.preventDefault();
     if (state !== 'playing') { startGame(); return; }
@@ -1012,6 +1048,7 @@ document.addEventListener('keydown', e => {
 });
 canvas.addEventListener('pointerdown', e => {
   e.preventDefault();
+  if (state === 'paused') return;
   if (state !== 'playing') { startGame(); return; }
   doJump();
 });
@@ -1020,9 +1057,33 @@ function startGame() {
   if (state === 'playing') return;
   reset(); state = 'playing';
   overlay.style.display = 'none';
+  pauseBtnEl.style.display = 'flex';
   cancelAnimationFrame(raf);
   raf = requestAnimationFrame(loop);
 }
+
+// ══════════════════════════════════════════════════════════
+// PAUSE / RESUME
+// ══════════════════════════════════════════════════════════
+function pauseGame() {
+  if (state !== 'playing') return;
+  state = 'paused';
+  cancelAnimationFrame(raf);
+  overlayIdleEl.style.display = 'none';
+  overlayDeadEl.style.display = 'none';
+  overlayPausedEl.style.display = '';
+  overlay.style.display = 'flex';
+}
+function resumeGame() {
+  if (state !== 'paused') return;
+  state = 'playing';
+  overlay.style.display = 'none';
+  cancelAnimationFrame(raf);
+  raf = requestAnimationFrame(loop);
+}
+pauseBtnEl.addEventListener('click', pauseGame);
+document.getElementById('resumeBtn').addEventListener('click', resumeGame);
+document.getElementById('lobbyBtn3').addEventListener('click', showLobbyScreen);
 
 // ══════════════════════════════════════════════════════════
 // PARTICLES
@@ -1451,12 +1512,14 @@ function die() {
   cancelAnimationFrame(raf);
   burst(cookie.x + CW/2, cookie.y - CH/2, '#d4804a', 14);
   state = 'dead';
+  pauseBtnEl.style.display = 'none';
   ctx.clearRect(0,0,GW,GH); drawBg(); obs.forEach(drawObs); jels.forEach(drawJel); pots.forEach(drawPot); drawCookie();
   setTimeout(showDead, 700);
 }
 
 function showDead() {
   overlayIdleEl.style.display = 'none';
+  overlayPausedEl.style.display = 'none';
   overlayDeadEl.style.display = '';
   document.getElementById('deadScore').textContent = Math.floor(score);
   document.getElementById('deadBest').textContent = Math.floor(best);
