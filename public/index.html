@@ -388,6 +388,39 @@ html, body {
 .lby-modal-scroll::-webkit-scrollbar { width:4px; }
 .lby-modal-scroll::-webkit-scrollbar-thumb { background:rgba(180,120,255,0.3); border-radius:4px; }
 
+/* ── แท็บซ้าย: ตัวละคร/สัตว์เลี้ยง/สมบัติ ── */
+.lby-char-tab-body { flex:1 1 0; display:flex; min-height:0; overflow:hidden; }
+.lby-char-tabs {
+  flex:0 0 64px; display:flex; flex-direction:column; gap:6px;
+  padding:10px 6px; border-right:1px solid rgba(180,120,255,0.15);
+}
+.lby-char-tab-btn {
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(180,120,255,0.18);
+  border-radius:12px; padding:8px 2px; cursor:pointer;
+  color:rgba(255,255,255,0.55); transition:all 0.15s; touch-action:manipulation;
+}
+.lby-char-tab-btn .lby-char-tab-icon { font-size:18px; line-height:1; }
+.lby-char-tab-btn .lby-char-tab-label { font-size:9px; font-weight:800; line-height:1.1; text-align:center; }
+.lby-char-tab-btn.active {
+  background:rgba(180,120,255,0.22); border-color:#c9a0ff; color:#fff;
+  box-shadow:0 0 0 1px rgba(180,120,255,0.3) inset;
+}
+.lby-char-tab-body .lby-modal-scroll { flex:1 1 0; }
+
+/* ── สมบัติ: ช่องว่าง 3 ช่อง ── */
+.lby-treasure-slots { display:flex; gap:10px; justify-content:center; padding:14px 0 6px; }
+.lby-treasure-slot {
+  width:64px; height:64px; border-radius:14px;
+  background:rgba(255,255,255,0.04); border:1.5px dashed rgba(180,120,255,0.35);
+  display:flex; align-items:center; justify-content:center;
+}
+.lby-treasure-plus { font-size:22px; color:rgba(180,120,255,0.5); font-weight:300; }
+.lby-tab-empty-hint {
+  text-align:center; color:rgba(255,255,255,0.4); font-size:12px;
+  padding:18px 10px;
+}
+
 /* ── CHAR GRID ── */
 .lby-char-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
 .lby-char-card {
@@ -763,9 +796,38 @@ canvas { display:block; }
   <div class="lby-modal lby-modal-inner">
     <button class="lby-modal-close" onclick="closeModal('modalChar')">✕</button>
     <div class="lby-modal-handle"></div>
-    <div class="lby-modal-title">🍪 เลือกตัวละคร</div>
-    <div class="lby-modal-scroll">
-      <div class="lby-char-grid" id="pickerCharGrid"></div>
+    <div class="lby-modal-title" id="modalCharTitle">🍪 เลือกตัวละคร</div>
+    <div class="lby-char-tab-body">
+      <!-- ปุ่ม 3 ปุ่มทางซ้าย: ตัวละคร / สัตว์เลี้ยง / สมบัติ -->
+      <div class="lby-char-tabs">
+        <button class="lby-char-tab-btn active" id="charTabBtn-char" onclick="switchCharTab('char')">
+          <span class="lby-char-tab-icon">🍪</span>
+          <span class="lby-char-tab-label">ตัวละคร</span>
+        </button>
+        <button class="lby-char-tab-btn" id="charTabBtn-pet" onclick="switchCharTab('pet')">
+          <span class="lby-char-tab-icon">🐾</span>
+          <span class="lby-char-tab-label">สัตว์เลี้ยง</span>
+        </button>
+        <button class="lby-char-tab-btn" id="charTabBtn-treasure" onclick="switchCharTab('treasure')">
+          <span class="lby-char-tab-icon">💎</span>
+          <span class="lby-char-tab-label">สมบัติ</span>
+        </button>
+      </div>
+      <!-- เนื้อหาแต่ละแท็บ -->
+      <div class="lby-modal-scroll" id="charTabPanel-char">
+        <div class="lby-char-grid" id="pickerCharGrid"></div>
+      </div>
+      <div class="lby-modal-scroll" id="charTabPanel-pet" style="display:none">
+        <div class="lby-tab-empty-hint">🐾 ระบบสัตว์เลี้ยง — เร็วๆนี้</div>
+      </div>
+      <div class="lby-modal-scroll" id="charTabPanel-treasure" style="display:none">
+        <div class="lby-treasure-slots">
+          <div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div>
+          <div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div>
+          <div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div>
+        </div>
+        <div class="lby-tab-empty-hint">💎 ใส่สมบัติได้สูงสุด 3 ชิ้น — เร็วๆนี้</div>
+      </div>
     </div>
   </div>
 </div>
@@ -2396,6 +2458,14 @@ function openModal(id) {
 }
 function closeModal(id) {
   document.getElementById(id).classList.remove('open');
+}
+
+// สลับแท็บในหน้าเลือกตัวละคร: ตัวละคร / สัตว์เลี้ยง / สมบัติ
+function switchCharTab(tab) {
+  ['char', 'pet', 'treasure'].forEach(t => {
+    document.getElementById('charTabBtn-' + t).classList.toggle('active', t === tab);
+    document.getElementById('charTabPanel-' + t).style.display = (t === tab) ? '' : 'none';
+  });
 }
 
 // ปิด modal เมื่อคลิก overlay
