@@ -1038,6 +1038,12 @@ function startLoadingThenGame(charId, mapId) {
 
 fetchSkills().then(s => {
   SKILLS = s;
+  // CHARS/MAPS ถูก merge ค่าจริงจากเซิฟเวอร์แล้วใน fetchSkills() —
+  // ต้องสร้าง CHAR/MAP ใหม่จาก object ปัจจุบันเพื่อให้ snapshot ที่ใช้เล่นจริง
+  // ไม่ใช่ค่าสำรองเก่าที่ถูกอ่านไปแล้วตอนโหลดสคริปต์
+  CHAR = toCharState(CHAR_OBJ);
+  MAP  = toMapState(MAP_OBJ);
+  hp = CHAR.maxHp;
   if (gameScreenEl.style.display !== 'none') updateOverlayDesc();
 });
 

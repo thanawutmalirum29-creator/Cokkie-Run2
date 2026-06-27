@@ -60,14 +60,34 @@ const SKILLS_FALLBACK = {
   healPotion:  { cooldownSec: 25, healAmount: 3 },
 };
 
-// โหลดข้อมูลสกิลจากเซิฟเวอร์ (ตัวเลขจริงไม่ได้อยู่ในไฟล์นี้)
+// โหลดข้อมูลสกิล + ค่าพลังชีวิต (CHARS) + ค่าความเร็ว/ความถี่สิ่งกีดขวาง (MAPS)
+// จากเซิฟเวอร์ — ตัวเลขจริงทั้งหมดไม่ได้อยู่ในไฟล์นี้ ค่าที่เห็นใน CHARS/MAPS
+// ข้างบนเป็นแค่ "ค่าสำรอง" ใช้ตอนต่อเซิฟเวอร์ไม่ติดเท่านั้น
 async function fetchSkills() {
   try {
     const res = await fetch('/api/skills');
     if (!res.ok) throw new Error('bad status');
-    return await res.json();
+    const data = await res.json();
+
+    // merge ค่าพลังชีวิตจริงลงในอาเรย์ CHARS (เซิฟเวอร์เป็นค่าจริงเสมอ)
+    if (data.charStats) {
+      CHARS.forEach(c => {
+        const s = data.charStats[c.id];
+        if (s && typeof s.maxHp === 'number') c.maxHp = s.maxHp;
+      });
+    }
+    // merge ค่าความยาก (speed/obsInterval) ลงในอาเรย์ MAPS
+    if (data.mapStats) {
+      MAPS.forEach(m => {
+        const s = data.mapStats[m.id];
+        if (!s) return;
+        if (typeof s.speed === 'number') m.speed = s.speed;
+        if (typeof s.obsInterval === 'number') m.obsInterval = s.obsInterval;
+      });
+    }
+    return data.skills || SKILLS_FALLBACK;
   } catch (e) {
-    console.warn('โหลดข้อมูลสกิลจากเซิฟเวอร์ไม่สำเร็จ ใช้ค่าสำรองแทน', e);
+    console.warn('โหลดข้อมูลจากเซิฟเวอร์ไม่สำเร็จ ใช้ค่าสำรองแทน (CHARS/MAPS/SKILLS)', e);
     return SKILLS_FALLBACK;
   }
 }
