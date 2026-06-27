@@ -49,6 +49,36 @@ html, body {
   background:transparent; color:#fff; font-size:18px; padding:0 4px; font-weight:700;
 }
 
+/* ── หน้า block อัปเดต (แสดงก่อนเข้าเกมได้เลย) ── */
+#updateBlocker {
+  display:none; position:fixed; inset:0; z-index:999999;
+  flex-direction:column; align-items:center; justify-content:center; gap:20px;
+  background:radial-gradient(circle at 50% 40%,#1a0500,#0d0200);
+}
+#updateBlocker.show { display:flex; }
+#updateBlocker .ub-icon { font-size:60px; animation:floatY 2.4s ease-in-out infinite; }
+#updateBlocker .ub-title {
+  font-size:22px; font-weight:900; color:#ff6b35;
+  text-shadow:0 0 20px #ff3d00; text-align:center; letter-spacing:1px;
+}
+#updateBlocker .ub-sub {
+  font-size:13px; color:#ffb74d; text-align:center; line-height:1.6; max-width:280px;
+}
+#updateBlocker .ub-btn {
+  padding:14px 40px; font-size:17px; font-weight:900; letter-spacing:1px;
+  background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);
+  color:#fff; border:none; border-radius:50px; cursor:pointer;
+  box-shadow:0 4px 24px #ff6b3566; touch-action:manipulation;
+  position:relative; overflow:hidden;
+  transition:transform 0.12s, box-shadow 0.12s;
+}
+#updateBlocker .ub-btn::before {
+  content:''; position:absolute; top:0; bottom:0; width:40%;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,0.45),transparent);
+  animation:shine 2.6s ease-in-out infinite;
+}
+#updateBlocker .ub-btn:active { transform:scale(0.95); }
+
 /* ── rotate prompt + fullscreen btn (ใช้ร่วมกันทั้งแอป) ── */
 #rotatePrompt {
   display:none; position:fixed; inset:0; background:#0d0200;
@@ -528,11 +558,19 @@ canvas { display:block; }
 </head>
 <body>
 
-<!-- ══ แบนเนอร์แจ้งมีเวอร์ชันใหม่ ══ -->
+<!-- ══ แบนเนอร์แจ้งมีเวอร์ชันใหม่ (ระหว่างเล่น) ══ -->
 <div id="updateBanner">
   <span>🆕 มีอัปเดตใหม่!</span>
   <button id="updateNowBtn">โหลดใหม่</button>
   <button class="ubClose" id="updateLaterBtn">✕</button>
+</div>
+
+<!-- ══ หน้า block อัปเดต (ก่อนเข้าเกม) ══ -->
+<div id="updateBlocker">
+  <div class="ub-icon">🍪</div>
+  <div class="ub-title">มีเวอร์ชันใหม่!<br>กรุณาอัปเดตก่อนเล่น</div>
+  <div class="ub-sub">มีการอัปเดตเกม กดปุ่มด้านล่างเพื่อโหลดเวอร์ชันใหม่และเริ่มเล่นได้เลย</div>
+  <button class="ub-btn" id="updateBlockerBtn">🔄 อัปเดตและเข้าเกม</button>
 </div>
 
 <div id="rotatePrompt">
@@ -801,6 +839,11 @@ function showGameScreenWith(charId, mapId) {
   lobbyScreenEl.style.display = 'none';
   loadingScreenEl.style.display = 'none';
   gameScreenEl.style.display = 'flex';
+  // ── ตั้ง flag ว่าเข้าเกมแล้ว อัปเดตต่อไปแสดงแค่ banner ──
+  window._gameStarted = true;
+  // ถ้า blocker กำลังแสดงอยู่ → ซ่อนไป (ไม่ควรเกิด แต่กัน edge case)
+  const blocker = document.getElementById('updateBlocker');
+  if (blocker) blocker.classList.remove('show');
   resize();
 }
 
@@ -1713,8 +1756,48 @@ if (screen.orientation) {
   if ('serviceWorker' in navigator) {
     let swReg = null;
 
+    // ── ตัวแปรบอกว่าผู้ใช้เข้าเกมได้แล้วหรือยัง ──
+    // (ตั้งเป็น true เมื่อ game screen แสดงครั้งแรก)
+    window._gameStarted = false;
+
     function checkForUpdate() {
       if (swReg) swReg.update().catch(() => {});
+    }
+
+    // ── แสดง blocker เต็มจอก่อนเข้าเกม ──
+    function showUpdateBlocker(reg) {
+      const blocker = document.getElementById('updateBlocker');
+      if (!blocker || blocker.classList.contains('show')) return;
+      blocker.classList.add('show');
+      document.getElementById('updateBlockerBtn').onclick = () => {
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // reload จะเกิดขึ้นผ่าน controllerchange listener
+      };
+    }
+
+    // ── แสดง banner เล็กระหว่างเล่น ──
+    function showUpdateBanner(reg) {
+      const banner = document.getElementById('updateBanner');
+      const btnNow = document.getElementById('updateNowBtn');
+      const btnLater = document.getElementById('updateLaterBtn');
+      if (banner.classList.contains('show')) return;
+      banner.classList.add('show');
+      btnNow.onclick = () => {
+        banner.classList.remove('show');
+        if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      };
+      btnLater.onclick = () => {
+        banner.classList.remove('show');
+      };
+    }
+
+    // ── เลือกโหมดตามว่าเข้าเกมแล้วหรือยัง ──
+    function handleUpdate(reg) {
+      if (window._gameStarted) {
+        showUpdateBanner(reg);
+      } else {
+        showUpdateBlocker(reg);
+      }
     }
 
     function handleReg(reg) {
@@ -1723,13 +1806,13 @@ if (screen.orientation) {
       function onNewWorker(worker) {
         worker.addEventListener('statechange', () => {
           if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(reg);
+            handleUpdate(reg);
           }
         });
       }
 
-      // เคสที่ 1: มี worker ใหม่รออยู่แล้วตั้งแต่เปิดมา
-      if (reg.waiting) { showUpdateBanner(reg); return; }
+      // เคสที่ 1: มี worker ใหม่รออยู่แล้วตั้งแต่เปิดมา → blocker ทันที
+      if (reg.waiting) { handleUpdate(reg); return; }
 
       // เคสที่ 2: กำลังติดตั้งอยู่แล้ว
       if (reg.installing) { onNewWorker(reg.installing); }
@@ -1753,30 +1836,14 @@ if (screen.orientation) {
         window.location.reload();
       });
 
-      // ── ตรวจอัปเดตทุก 5 นาที (เผื่อเปิดแอปค้างไว้นาน) ──
+      // ── ตรวจอัปเดตทุก 5 นาที ──
       setInterval(checkForUpdate, 5 * 60 * 1000);
 
-      // ── ตรวจอัปเดตทุกครั้งที่กลับมาใช้แอป (switch tab / unlock จอ) ──
+      // ── ตรวจอัปเดตทุกครั้งที่กลับมาใช้แอป ──
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') checkForUpdate();
       });
     });
-  }
-
-  function showUpdateBanner(reg) {
-    const banner = document.getElementById('updateBanner');
-    const btnNow = document.getElementById('updateNowBtn');
-    const btnLater = document.getElementById('updateLaterBtn');
-    if (banner.classList.contains('show')) return; // ไม่แสดงซ้ำ
-    banner.classList.add('show');
-
-    btnNow.onclick = () => {
-      banner.classList.remove('show');
-      if (reg.waiting) reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-    };
-    btnLater.onclick = () => {
-      banner.classList.remove('show');
-    };
   }
 </script>
 </body>
