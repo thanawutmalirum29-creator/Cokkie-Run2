@@ -1471,32 +1471,54 @@ if (screen.orientation) {
 </script>
 <script>
   if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('/service-worker.js').then((reg) => {
-        // ── เคสที่ 1: มี worker ใหม่ "รออยู่" แล้วตั้งแต่เปิดมา (อัปเดตค้างจากรอบก่อน) ──
-        if (reg.waiting) showUpdateBanner(reg);
+    let swReg = null;
 
-        // ── เคสที่ 2: เจอเวอร์ชันใหม่ระหว่างที่เปิดแอปอยู่ ──
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing;
-          if (!newWorker) return;
-          newWorker.addEventListener('statechange', () => {
-            // 'installed' + มี controller เดิมอยู่แล้ว = นี่คืออัปเดต ไม่ใช่ติดตั้งครั้งแรก
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              showUpdateBanner(reg);
-            }
-          });
+    function checkForUpdate() {
+      if (swReg) swReg.update().catch(() => {});
+    }
+
+    function handleReg(reg) {
+      swReg = reg;
+
+      function onNewWorker(worker) {
+        worker.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            showUpdateBanner(reg);
+          }
         });
-      }).catch((err) => {
-        console.warn('ลงทะเบียน service worker ไม่สำเร็จ', err);
-      });
+      }
 
-      // กันรีโหลดวนซ้ำ — รีโหลดแค่ครั้งเดียวตอน controller เปลี่ยนจริง
+      // เคสที่ 1: มี worker ใหม่รออยู่แล้วตั้งแต่เปิดมา
+      if (reg.waiting) { showUpdateBanner(reg); return; }
+
+      // เคสที่ 2: กำลังติดตั้งอยู่แล้ว
+      if (reg.installing) { onNewWorker(reg.installing); }
+
+      // เคสที่ 3: เจอ worker ใหม่ระหว่างเปิดแอปอยู่
+      reg.addEventListener('updatefound', () => {
+        if (reg.installing) onNewWorker(reg.installing);
+      });
+    }
+
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/service-worker.js')
+        .then(handleReg)
+        .catch((err) => console.warn('SW register failed', err));
+
+      // กันรีโหลดวนซ้ำ
       let refreshed = false;
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         if (refreshed) return;
         refreshed = true;
         window.location.reload();
+      });
+
+      // ── ตรวจอัปเดตทุก 5 นาที (เผื่อเปิดแอปค้างไว้นาน) ──
+      setInterval(checkForUpdate, 5 * 60 * 1000);
+
+      // ── ตรวจอัปเดตทุกครั้งที่กลับมาใช้แอป (switch tab / unlock จอ) ──
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') checkForUpdate();
       });
     });
   }
@@ -1505,6 +1527,7 @@ if (screen.orientation) {
     const banner = document.getElementById('updateBanner');
     const btnNow = document.getElementById('updateNowBtn');
     const btnLater = document.getElementById('updateLaterBtn');
+    if (banner.classList.contains('show')) return; // ไม่แสดงซ้ำ
     banner.classList.add('show');
 
     btnNow.onclick = () => {
