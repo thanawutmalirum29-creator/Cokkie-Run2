@@ -2582,14 +2582,22 @@ if (screen.orientation) {
       });
     }
 
-    // ── ดึงเวอร์ชันจาก cache name ของ service worker อัตโนมัติ ──
-    // ไม่ต้องแก้ index.html อีกต่อไป แก้แค่ CACHE_NAME ใน service-worker.js พอ
+    // ── ดึงเวอร์ชันจาก server (ค่ากลางค่าเดียว ไม่ขึ้นกับ cache ในเครื่อง) ──
     function updateVersionDisplay() {
-      caches.keys().then(keys => {
-        const swCache = keys.find(k => k.startsWith('cookie-run-'));
-        const verEl = document.getElementById('appVersion');
-        if (verEl) verEl.textContent = swCache || 'cookie-run-?';
-      }).catch(() => {});
+      fetch('/api/version', { cache: 'no-store' })
+        .then(r => r.json())
+        .then(d => {
+          const verEl = document.getElementById('appVersion');
+          if (verEl) verEl.textContent = d.version ? `cookie-run-${d.version}` : 'cookie-run-?';
+        })
+        .catch(() => {
+          // ออฟไลน์/server เรียกไม่ติด → fallback อ่านจาก cache ในเครื่องแทน
+          caches.keys().then(keys => {
+            const swCache = keys.find(k => k.startsWith('cookie-run-'));
+            const verEl = document.getElementById('appVersion');
+            if (verEl) verEl.textContent = swCache || 'cookie-run-?';
+          }).catch(() => {});
+        });
     }
 
     window.addEventListener('load', () => {
