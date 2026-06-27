@@ -825,6 +825,12 @@ const cookie = { x:110, y:GROUND, vy:0, jumps:0, alive:true };
 let obs = [], obsTimer = 0, obsInterval = 95;
 let jels = [], jelTimer = 0;
 let pots = [];
+let items = [];  // powerup items: hpLarge, hpSmall, fireball, magnet
+let fireballActive = false, fireballFrames = 0;
+let magnetActive   = false, magnetFrames   = 0;
+const FIREBALL_DURATION = 4 * 60; // 4 วิ @ 60fps
+const MAGNET_DURATION   = 6 * 60; // 6 วิ @ 60fps
+const MAGNET_RADIUS     = 160;    // px ดูดเยลลี่
 let parts = [];
 const floats = [];
 let jellyCount = 0, hasRevived = false, skillTimer = 0, dashing = false, dashFramesLeft = 0;
@@ -1007,10 +1013,12 @@ function cRight(){ return cookie.x + CW; }
 function reset() {
   score = 0; frame = 0; speed = MAP.speed;
   cookie.x = 110; cookie.y = GROUND; cookie.vy = 0; cookie.jumps = 0; cookie.alive = true;
-  obs = []; jels = []; pots = []; parts = []; floats.length = 0;
+  obs = []; jels = []; pots = []; items = []; parts = []; floats.length = 0;
   obsTimer = 0; jelTimer = 0; obsInterval = MAP.obsInterval;
   hp = CHAR.maxHp; hpTimer = 0; invincible = false;
   jellyCount = 0; hasRevived = false; skillTimer = 0; dashing = false; dashFramesLeft = 0;
+  fireballActive = false; fireballFrames = 0;
+  magnetActive   = false; magnetFrames   = 0;
   bgFar = 0; bgMid = 0; bgCloud = 0; bgFloor = 0;
   initStream();
   renderHpBar();
@@ -1125,6 +1133,28 @@ function drawCookie() {
     ctx.globalAlpha = 0.45;
     ctx.strokeStyle = '#fff176'; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.arc(cx, cy, CH / 2 + 7, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  // ── เอฟเฟค fireball aura ──
+  if (fireballActive) {
+    const fp = 0.6 + 0.3 * Math.sin(frame * 0.3);
+    ctx.save();
+    ctx.globalAlpha = fp * 0.5;
+    ctx.beginPath(); ctx.arc(cx, cy, CH/2 + 10, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff6d00'; ctx.fill();
+    ctx.globalAlpha = fp * 0.8;
+    ctx.strokeStyle = '#ffcc02'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.arc(cx, cy, CH/2 + 6, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  // ── เอฟเฟค magnet aura ──
+  if (magnetActive) {
+    ctx.save();
+    ctx.globalAlpha = 0.18 + 0.08 * Math.sin(frame * 0.15);
+    ctx.beginPath(); ctx.arc(cx, cy, MAGNET_RADIUS, 0, Math.PI * 2);
+    ctx.strokeStyle = '#7c4dff'; ctx.lineWidth = 2;
+    ctx.setLineDash([6, 6]); ctx.stroke(); ctx.setLineDash([]);
     ctx.restore();
   }
 
@@ -1255,6 +1285,102 @@ function drawPot(p) {
   ctx.restore();
 }
 
+function drawItem(it) {
+  if (it.done) return;
+  const bobY = Math.sin(frame * 0.09 + (it.x % 6) * 0.5) * 5;
+  ctx.save();
+  ctx.translate(it.x, it.y + bobY);
+
+  switch (it.itemType) {
+    case 'hpLarge': {
+      // ขวดแดงใหญ่
+      const grd = ctx.createRadialGradient(-4, -8, 2, 0, 0, 16);
+      grd.addColorStop(0, '#ff6b6b'); grd.addColorStop(1, '#b71c1c');
+      ctx.fillStyle = grd;
+      rrectPath(ctx, -10, -14, 20, 26, 4); ctx.fill();
+      ctx.strokeStyle = '#7f0000'; ctx.lineWidth = 1.5;
+      rrectPath(ctx, -10, -14, 20, 26, 4); ctx.stroke();
+      // จุกขวด
+      ctx.fillStyle = '#bdbdbd'; rrectPath(ctx, -4, -20, 8, 7, 2); ctx.fill();
+      // ไม้กาแดง
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2.5; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, -8); ctx.lineTo(0, 6); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-6, -1); ctx.lineTo(6, -1); ctx.stroke();
+      // glow
+      ctx.globalAlpha = 0.22 + 0.12 * Math.sin(frame * 0.12);
+      ctx.beginPath(); ctx.arc(0, 0, 20, 0, Math.PI*2);
+      ctx.fillStyle = '#e53935'; ctx.fill();
+      break;
+    }
+    case 'hpSmall': {
+      // ขวดชมพูเล็ก
+      const grd = ctx.createRadialGradient(-3, -5, 1, 0, 0, 12);
+      grd.addColorStop(0, '#ffb3b3'); grd.addColorStop(1, '#e57373');
+      ctx.fillStyle = grd;
+      rrectPath(ctx, -8, -10, 16, 20, 3); ctx.fill();
+      ctx.strokeStyle = '#c62828'; ctx.lineWidth = 1.5;
+      rrectPath(ctx, -8, -10, 16, 20, 3); ctx.stroke();
+      ctx.fillStyle = '#e0e0e0'; rrectPath(ctx, -3, -15, 6, 6, 2); ctx.fill();
+      ctx.strokeStyle = '#fff'; ctx.lineWidth = 2; ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(0, -5); ctx.lineTo(0, 5); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-4, 0); ctx.lineTo(4, 0); ctx.stroke();
+      ctx.globalAlpha = 0.18 + 0.1 * Math.sin(frame * 0.12);
+      ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2);
+      ctx.fillStyle = '#ef9a9a'; ctx.fill();
+      break;
+    }
+    case 'fireball': {
+      // ลูกไฟสีส้มแดง
+      const pulse = 0.8 + 0.2 * Math.sin(frame * 0.25);
+      ctx.globalAlpha = 0.3 * pulse;
+      ctx.beginPath(); ctx.arc(0, 0, 22, 0, Math.PI*2);
+      ctx.fillStyle = '#ff6d00'; ctx.fill();
+      ctx.globalAlpha = 1;
+      const fg = ctx.createRadialGradient(-4, -4, 2, 0, 0, 14);
+      fg.addColorStop(0, '#fff9c4'); fg.addColorStop(0.4, '#ff6d00'); fg.addColorStop(1, '#b71c1c');
+      ctx.beginPath(); ctx.arc(0, 0, 14, 0, Math.PI*2);
+      ctx.fillStyle = fg; ctx.fill();
+      // เปลวไฟด้านบน
+      ctx.fillStyle = '#ffcc02';
+      ctx.beginPath(); ctx.moveTo(-6, -10); ctx.quadraticCurveTo(0, -22, 6, -10); ctx.closePath(); ctx.fill();
+      ctx.fillStyle = '#fff9c4';
+      ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI*2); ctx.fill();
+      break;
+    }
+    case 'magnet': {
+      // แม่เหล็กสีม่วง
+      const mp = 0.85 + 0.15 * Math.sin(frame * 0.18);
+      ctx.globalAlpha = 0.25 * mp;
+      ctx.beginPath(); ctx.arc(0, 0, 24, 0, Math.PI*2);
+      ctx.fillStyle = '#7c4dff'; ctx.fill();
+      ctx.globalAlpha = 1;
+      // ตัว U แม่เหล็ก
+      ctx.strokeStyle = '#7c4dff'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.arc(0, -2, 10, Math.PI, 0); // ส่วนโค้ง
+      ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-10, -2); ctx.lineTo(-10, 8); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(10, -2); ctx.lineTo(10, 8); ctx.stroke();
+      // ขั้ว N/S
+      ctx.fillStyle = '#f44336'; ctx.fillRect(-13, 6, 7, 6);
+      ctx.fillStyle = '#2196f3'; ctx.fillRect(6, 6, 7, 6);
+      ctx.font = 'bold 5px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('N', -9.5, 9); ctx.fillText('S', 9.5, 9);
+      // วงประดูด (แสดงเมื่อ active)
+      if (magnetActive) {
+        ctx.globalAlpha = 0.15 + 0.08 * Math.sin(frame * 0.15);
+        ctx.beginPath(); ctx.arc(0, 0, 28, 0, Math.PI*2);
+        ctx.strokeStyle = '#7c4dff'; ctx.lineWidth = 2; ctx.setLineDash([4,4]); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      break;
+    }
+  }
+  ctx.globalAlpha = 1;
+  ctx.restore();
+}
+
 // ══════════════════════════════════════════════════════════
 // WORLD PLAN — pre-generate ฉากทั้งหมดล่วงหน้า
 // obstacle + safe-path jelly trail คำนวณพร้อมกันก่อนเกมเริ่ม
@@ -1292,17 +1418,26 @@ function emitNextTile() {
     case 106: pendingEvents.push({ worldX: tileStart + TW*0.4,  kind:'obs', w:65, h:28, y:GROUND_Y-28,  type:'wide'  }); break;
   }
 
-  // jellies
+  // jellies + items
   const layout = (tileLayouts[code] || tileLayouts[101] || []);
   for (const pt of layout) {
     const wx = tileStart + pt.x;
-    pendingEvents.push({
-      worldX: wx, kind:'jel',
-      y: GROUND_Y - CH/2 - (pt.y || 0),
-      r: pt.r || 10, val: pt.val || 7,
-      bob: (wx % 8) * 0.4,
-      special: pt.special || false,
-    });
+    if (pt.item) {
+      // tile 108-111: item powerup
+      pendingEvents.push({
+        worldX: wx, kind: 'item',
+        itemType: pt.item,
+        y: GROUND_Y - CH/2 - (pt.y || 0),
+      });
+    } else {
+      pendingEvents.push({
+        worldX: wx, kind:'jel',
+        y: GROUND_Y - CH/2 - (pt.y || 0),
+        r: pt.r || 10, val: pt.val || 7,
+        bob: (wx % 8) * 0.4,
+        special: pt.special || false,
+      });
+    }
   }
 
   worldCursorX += TW;
@@ -1334,6 +1469,8 @@ function tickStream() {
     } else if (ev.kind === 'jel') {
       jels.push({ x: sx, y: ev.y, r: ev.r, bob: ev.bob, done: false,
                   special: ev.special, val: ev.val, trail: false });
+    } else if (ev.kind === 'item') {
+      items.push({ x: sx, y: ev.y, itemType: ev.itemType, done: false });
     }
     // emit tile ใหม่ทดแทนทุกครั้งที่ spawn
     fillStream();
@@ -1406,6 +1543,9 @@ function runFrame() {
   pots = pots.filter(p => p.x + p.w/2 > -10);
   pots.forEach(p => p.x -= speed);
 
+  items = items.filter(it => it.x + 18 > -10);
+  items.forEach(it => it.x -= speed);
+
   // ── ระบบสกิล (ตัวเลขมาจาก /api/skills บนเซิฟเวอร์) ──────
   if (CHAR.bonus === 'yellowJelly') {
     const cfg = SKILLS.yellowJelly || SKILLS_FALLBACK.yellowJelly;
@@ -1441,6 +1581,45 @@ function runFrame() {
   if (score > best) best = score;
   document.getElementById('sc').textContent = Math.floor(score);
   document.getElementById('hi').textContent = Math.floor(best);
+
+  // ── Fireball: ทำลาย obs ที่อยู่ข้างหน้า ─────────────────
+  if (fireballActive) {
+    fireballFrames--;
+    if (fireballFrames <= 0) {
+      fireballActive = false;
+      addFloat(cookie.x + CW/2, cookie.y - CH - 22, '🔥 หมดเวลา', '#ff6d00');
+    } else {
+      // ทำลาย obs ทั้งหมดข้างหน้า cookie ในระยะ 300px
+      for (let i = obs.length - 1; i >= 0; i--) {
+        const o = obs[i];
+        if (o.x > cookie.x - 10 && o.x < cookie.x + 300) {
+          burst((o.x + o.w/2), (o.y + o.h/2), '#ff6d00', 14);
+          obs.splice(i, 1);
+        }
+      }
+    }
+  }
+
+  // ── Magnet: ดูดเยลลี่เข้าหาตัว ──────────────────────────
+  if (magnetActive) {
+    magnetFrames--;
+    if (magnetFrames <= 0) {
+      magnetActive = false;
+      addFloat(cookie.x + CW/2, cookie.y - CH - 22, '🔮 หมดเวลา', '#7c4dff');
+    } else {
+      const cx = cookie.x + CW/2, cy = cookie.y - CH/2;
+      jels.forEach(j => {
+        if (j.done) return;
+        const dx = cx - j.x, dy = cy - j.y;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        if (dist < MAGNET_RADIUS && dist > 1) {
+          const pull = Math.min(speed * 3, dist * 0.18);
+          j.x += (dx / dist) * pull;
+          j.y += (dy / dist) * pull;
+        }
+      });
+    }
+  }
 
   // ── Collision ─────────────────────────────────────────
   const PAD = 5;
@@ -1491,6 +1670,43 @@ function runFrame() {
     }
   });
 
+  // ── Item (108-111) pickup ─────────────────────────────
+  items.forEach(it => {
+    if (it.done) return;
+    const dx = cookie.x + CW/2 - it.x, dy = cookie.y - CH/2 - it.y;
+    if (dx*dx + dy*dy < (CW/2 + 18) * (CW/2 + 18)) {
+      it.done = true;
+      switch (it.itemType) {
+        case 'hpLarge':
+          hp = Math.min(CHAR.maxHp, hp + 20);
+          renderHpBar();
+          hpBarInner.classList.remove('heal'); void hpBarInner.offsetWidth; hpBarInner.classList.add('heal');
+          burst(it.x, it.y, '#e53935', 16);
+          addFloat(it.x, it.y - 18, '+20 ❤', '#e53935');
+          break;
+        case 'hpSmall':
+          hp = Math.min(CHAR.maxHp, hp + 5);
+          renderHpBar();
+          hpBarInner.classList.remove('heal'); void hpBarInner.offsetWidth; hpBarInner.classList.add('heal');
+          burst(it.x, it.y, '#ef9a9a', 10);
+          addFloat(it.x, it.y - 18, '+5 ❤', '#ef9a9a');
+          break;
+        case 'fireball':
+          fireballActive = true;
+          fireballFrames = FIREBALL_DURATION;
+          burst(it.x, it.y, '#ff6d00', 18);
+          addFloat(it.x, it.y - 18, '🔥 ลูกไฟ! 4 วิ', '#ff6d00');
+          break;
+        case 'magnet':
+          magnetActive = true;
+          magnetFrames = MAGNET_DURATION;
+          burst(it.x, it.y, '#7c4dff', 18);
+          addFloat(it.x, it.y - 18, '🔮 แม่เหล็ก! 6 วิ', '#7c4dff');
+          break;
+      }
+    }
+  });
+
   // ── Draw ─────────────────────────────────────────────
   ctx.clearRect(0, 0, GW, GH);
   drawBg(); obs.forEach(drawObs);
@@ -1520,7 +1736,7 @@ function runFrame() {
     ctx.restore();
   }
 
-  jels.forEach(drawJel); pots.forEach(drawPot); drawCookie();
+  jels.forEach(drawJel); pots.forEach(drawPot); items.forEach(drawItem); drawCookie();
 
   parts.forEach(p => {
     ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2);
@@ -1549,7 +1765,7 @@ function die() {
   burst(cookie.x + CW/2, cookie.y - CH/2, '#d4804a', 14);
   state = 'dead';
   pauseBtnEl.style.display = 'none';
-  ctx.clearRect(0,0,GW,GH); drawBg(); obs.forEach(drawObs); jels.forEach(drawJel); pots.forEach(drawPot); drawCookie();
+  ctx.clearRect(0,0,GW,GH); drawBg(); obs.forEach(drawObs); jels.forEach(drawJel); pots.forEach(drawPot); items.forEach(drawItem); drawCookie();
   setTimeout(showDead, 700);
 }
 
