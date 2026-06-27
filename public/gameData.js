@@ -47,10 +47,10 @@ const MAPS = [
 // ค่าสำรอง (ใช้ตอนยังโหลด /api/skills ไม่เสร็จ หรือเซิฟเวอร์เรียกไม่ติด)
 // — ค่าจริงที่ใช้เล่นจะมาจากเซิฟเวอร์เสมอเมื่อโหลดสำเร็จ
 const SKILLS_FALLBACK = {
-  yellowJelly: { cooldownSec: 5,  jellyScore: 15 },
-  revive:      { reviveHp: 20, hpPerJellies: 1, jelliesPerBonus: 10 },
+  yellowJelly: { cooldownSec: 5,  jellyScore: 300 },
+  revive:      { reviveHp: 20, hpPerJellies: 1, jelliesPerBonus: 500 },
   dash:        { cooldownSec: 15, durationSec: 4, speedMult: 1.8 },
-  jellyBonus:  { bonus: 5 },
+  jellyBonus:  { bonus: 1 },
   healPotion:  { cooldownSec: 25, healAmount: 3 },
 };
 
