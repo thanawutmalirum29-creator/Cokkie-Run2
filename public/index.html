@@ -1119,6 +1119,178 @@ function drawBg() {
   }
 }
 
+// ══════════════════════════════════════════════════════════
+// ขนมปังขิง — ฟังก์ชันวาดตัวละครกลาง ใช้ร่วมกันทั้งในเกม,
+// แถบเลือกตัวละครในล็อบบี้ และ showcase กลางจอ
+// ทุกตัวละครเป็น "ขนมปังขิง" รูปทรงเดียวกัน ต่างกันที่สีและ
+// ลายตกแต่งเฉพาะตัว (g = {body:[เข้ม,กลาง,อ่อน], chip, eye, id})
+// ══════════════════════════════════════════════════════════
+function drawGingerbread(c, cx, cy, scale, g, o) {
+  o = o || {};
+  const alive    = o.alive !== false;
+  const legSwing = o.legSwing || 0;   // ระยะเหวี่ยงขา (สลับกาง/หุบ)
+  const bob      = o.bob || 0;        // จังหวะเด้งของช่วงบน (หัว/ลำตัว/แขน)
+  const frame    = o.frame || 0;
+  const isGhost  = g.id === 'ghost';
+  const body = g.body, chip = g.chip, eye = g.eye || '#fff';
+  const limbMid = body[1], limbDark = body[0];
+
+  c.save();
+  c.translate(cx, cy);
+  c.scale(scale, scale);
+  if (o.alpha != null) c.globalAlpha = o.alpha;
+  if (isGhost) c.globalAlpha *= 0.88;
+
+  // ── ขา (ยึดติดพื้น ไม่เด้งตาม bob) ──
+  if (!isGhost) {
+    [-1, 1].forEach(side => {
+      const footX = side * (13 - legSwing);
+      c.strokeStyle = limbMid; c.lineWidth = 9; c.lineCap = 'round';
+      c.beginPath(); c.moveTo(side * 8, 12); c.lineTo(footX, 25); c.stroke();
+      c.beginPath(); c.ellipse(footX, 26, 6.5, 5, 0, 0, Math.PI * 2);
+      c.fillStyle = limbDark; c.fill();
+    });
+  } else {
+    // ผี: ชายผ้าเป็นคลื่นแทนขา
+    c.beginPath();
+    c.moveTo(-15, 10);
+    c.quadraticCurveTo(-11, 26, -7, 16);
+    c.quadraticCurveTo(-3, 26, 1, 16);
+    c.quadraticCurveTo(5, 26, 9, 16);
+    c.quadraticCurveTo(13, 26, 15, 10);
+    c.lineTo(15, -2); c.lineTo(-15, -2); c.closePath();
+    const gg = c.createLinearGradient(0, -2, 0, 26);
+    gg.addColorStop(0, body[1]); gg.addColorStop(1, body[0]);
+    c.fillStyle = gg; c.fill();
+  }
+
+  // ── ช่วงบน: แขน/ลำตัว/หัว เด้งไปด้วยกันตามจังหวะวิ่ง ──
+  c.save();
+  c.translate(0, bob);
+
+  [-1, 1].forEach(side => {
+    c.strokeStyle = limbMid; c.lineWidth = 8; c.lineCap = 'round';
+    c.beginPath(); c.moveTo(side * 11, -3); c.lineTo(side * 22, -7); c.stroke();
+    c.beginPath(); c.arc(side * 22, -7, 5, 0, Math.PI * 2);
+    c.fillStyle = limbDark; c.fill();
+  });
+
+  c.beginPath(); c.ellipse(0, 4, 14, 13, 0, 0, Math.PI * 2);
+  const tg = c.createRadialGradient(-5, -2, 2, 0, 4, 16);
+  tg.addColorStop(0, body[2]); tg.addColorStop(0.55, body[1]); tg.addColorStop(1, body[0]);
+  c.fillStyle = tg; c.fill();
+
+  c.beginPath(); c.arc(0, -16, 11, 0, Math.PI * 2);
+  const hg = c.createRadialGradient(-4, -19, 1.5, 0, -16, 12);
+  hg.addColorStop(0, body[2]); hg.addColorStop(0.55, body[1]); hg.addColorStop(1, body[0]);
+  c.fillStyle = hg; c.fill();
+
+  // ── ลายไอซิ่งรอบคอ + จุดข้อมือ/ข้อเท้า ──
+  if (!isGhost) {
+    c.strokeStyle = 'rgba(255,255,255,0.92)'; c.lineWidth = 1.4; c.lineCap = 'round';
+    c.beginPath();
+    for (let i = -7; i <= 7; i += 3.3) c.arc(i, -8, 1.9, Math.PI, 0, false);
+    c.stroke();
+    c.fillStyle = 'rgba(255,255,255,0.92)';
+    [[-22, -7], [22, -7], [-13, 25], [13, 25]].forEach(([x, y]) => {
+      c.beginPath(); c.arc(x, y, 1.6, 0, Math.PI * 2); c.fill();
+    });
+  } else {
+    c.fillStyle = 'rgba(230,230,255,0.65)';
+    [[-17, -2], [18, 4], [-13, 18]].forEach(([x, y], i) => {
+      const r = 1.3 + 0.4 * Math.sin(frame * 0.15 + i);
+      c.beginPath(); c.arc(x, y, r, 0, Math.PI * 2); c.fill();
+    });
+  }
+
+  // ── กระดุมไอซิ่งสีขาว (เอกลักษณ์ขนมปังขิง) ──
+  if (!isGhost) {
+    [[0, -1], [0, 5], [0, 11]].forEach(([bx, by]) => {
+      c.beginPath(); c.arc(bx, by, 2.1, 0, Math.PI * 2);
+      c.fillStyle = 'rgba(255,255,255,0.95)'; c.fill();
+      c.beginPath(); c.arc(bx, by, 0.9, 0, Math.PI * 2);
+      c.fillStyle = chip; c.fill();
+    });
+  }
+
+  drawGingerAccent(c, g);
+
+  // ── หน้า ──
+  const ey = -19;
+  if (alive) {
+    c.fillStyle = isGhost ? eye : '#1a0800';
+    c.beginPath(); c.arc(-5, ey, 2.4, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(5, ey, 2.4, 0, Math.PI * 2); c.fill();
+    if (!isGhost) {
+      c.fillStyle = eye;
+      c.beginPath(); c.arc(-4, ey - 0.8, 0.9, 0, Math.PI * 2); c.fill();
+      c.beginPath(); c.arc(6, ey - 0.8, 0.9, 0, Math.PI * 2); c.fill();
+    }
+    if (isGhost) {
+      c.fillStyle = 'rgba(20,20,40,0.5)';
+      c.beginPath(); c.ellipse(0, -12, 2.6, 3.2, 0, 0, Math.PI * 2); c.fill();
+    } else {
+      c.strokeStyle = '#1a0800'; c.lineWidth = 1.6;
+      c.beginPath(); c.arc(0, -12, 4.2, 0.1, Math.PI - 0.1); c.stroke();
+    }
+  } else {
+    c.strokeStyle = '#1a0800'; c.lineWidth = 1.8;
+    [-5, 5].forEach(ex => {
+      c.beginPath(); c.moveTo(ex - 2.2, ey - 2.2); c.lineTo(ex + 2.2, ey + 2.2); c.stroke();
+      c.beginPath(); c.moveTo(ex + 2.2, ey - 2.2); c.lineTo(ex - 2.2, ey + 2.2); c.stroke();
+    });
+  }
+
+  c.restore(); // จบจังหวะเด้งช่วงบน
+  c.globalAlpha = 1;
+  c.restore();
+}
+
+// ลายตกแต่งเฉพาะตัวละคร (เหมือนกันคือเป็นขนมปังขิง ต่างกันที่ลายนี้)
+function drawGingerAccent(c, g) {
+  switch (g.id) {
+    case 'strawberry':
+      // เมล็ดสตรอว์เบอร์รี่กระจายบนตัว
+      c.fillStyle = '#fff3c4';
+      [[-7, 1], [7, 0], [-4, 8], [5, 9], [0, -3], [-2, 4]].forEach(([x, y]) => {
+        c.beginPath(); c.ellipse(x, y, 1.1, 1.8, 0.3, 0, Math.PI * 2); c.fill();
+      });
+      break;
+    case 'matcha':
+      // ใบชาเล็กๆ บนหัว
+      c.save(); c.translate(5, -26); c.rotate(-0.4);
+      c.beginPath(); c.ellipse(0, 0, 5.5, 3, 0, 0, Math.PI * 2);
+      c.fillStyle = '#bdf271'; c.fill();
+      c.strokeStyle = '#5a9a20'; c.lineWidth = 0.7; c.stroke();
+      c.beginPath(); c.moveTo(-4, 0); c.lineTo(4, 0); c.stroke();
+      c.restore();
+      break;
+    case 'vanilla':
+      // จุดเมล็ดวนิลา
+      c.fillStyle = '#4a3215';
+      [[-7, 1], [6, -1], [-2, 7], [4, 5], [-5, 9], [1, -3], [-8, 9]].forEach(([x, y]) => {
+        c.beginPath(); c.ellipse(x, y, 1.3, 0.7, 0.4, 0, Math.PI * 2); c.fill();
+      });
+      break;
+    case 'blueberry':
+      // ฝ้าขาวธรรมชาติ + มงกุฎรูปดาวบนหัว
+      c.fillStyle = 'rgba(220,230,255,0.55)';
+      [[-7, 2], [6, 1], [0, 9], [-3, -2], [4, 7]].forEach(([x, y]) => {
+        c.beginPath(); c.arc(x, y, 1.4, 0, Math.PI * 2); c.fill();
+      });
+      c.save(); c.translate(0, -25);
+      c.strokeStyle = '#0d1a4d'; c.lineWidth = 1.1; c.lineCap = 'round';
+      for (let a = 0; a < 5; a++) {
+        const ang = -Math.PI / 2 + a * (Math.PI * 2 / 5);
+        c.beginPath(); c.moveTo(0, 0); c.lineTo(Math.cos(ang) * 3.2, Math.sin(ang) * 3.2); c.stroke();
+      }
+      c.restore();
+      break;
+    default:
+      break; // choco / ghost: ไม่มีลายเสริม (รูปแบบคลาสสิกของขนมปังขิง)
+  }
+}
+
 function drawCookie() {
   const cx = cookie.x + CW / 2, cy = cookie.y - CH / 2;
   ctx.save();
@@ -1158,53 +1330,14 @@ function drawCookie() {
     ctx.restore();
   }
 
-  const gr = ctx.createRadialGradient(cx - 6, cy - 6, 3, cx, cy, CH / 2);
-  gr.addColorStop(0, CHAR.body[2]); gr.addColorStop(0.5, CHAR.body[1]); gr.addColorStop(1, CHAR.body[0]);
-  ctx.beginPath(); ctx.arc(cx, cy, CH / 2, 0, Math.PI * 2); ctx.fillStyle = gr; ctx.fill();
-
-  ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 1.5;
-  ctx.beginPath(); ctx.moveTo(cx - 9, cy - 4); ctx.lineTo(cx - 2, cy + 4); ctx.stroke();
-  ctx.beginPath(); ctx.moveTo(cx + 3, cy - 8); ctx.lineTo(cx + 10, cy - 1); ctx.stroke();
-
-  if (CHAR.id === 'ghost') {
-    ctx.strokeStyle = 'rgba(180,180,255,0.35)'; ctx.lineWidth = 2;
-    ctx.beginPath(); ctx.arc(cx, cy, 12, 0, Math.PI * 1.5); ctx.stroke();
-  } else {
-    [[cx-10,cy-3,4],[cx+6,cy+5,3.5],[cx-3,cy+9,3]].forEach(([bx,by,r]) => {
-      ctx.beginPath(); ctx.arc(bx, by, r, 0, Math.PI * 2); ctx.fillStyle = CHAR.chip; ctx.fill();
-    });
-  }
-
-  const ey = cy - 7;
-  if (cookie.alive) {
-    ctx.fillStyle = CHAR.id === 'ghost' ? '#8080ff' : '#1a0800';
-    ctx.beginPath(); ctx.arc(cx - 7, ey, 3.5, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 7, ey, 3.5, 0, Math.PI * 2); ctx.fill();
-    ctx.fillStyle = CHAR.eye || '#fff';
-    ctx.beginPath(); ctx.arc(cx - 5.5, ey - 1, 1.2, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.arc(cx + 8.5, ey - 1, 1.2, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#1a0800'; ctx.lineWidth = 2;
-    if (CHAR.id === 'ghost') {
-      ctx.beginPath(); ctx.arc(cx, cy + 5, 6, 0.1, Math.PI - 0.1, true); ctx.stroke();
-    } else {
-      ctx.beginPath(); ctx.arc(cx, cy + 5, 6, 0.1, Math.PI - 0.1); ctx.stroke();
-    }
-  } else {
-    ctx.strokeStyle = '#1a0800'; ctx.lineWidth = 2.5;
-    [[-7],[7]].forEach(([ex]) => {
-      ctx.beginPath(); ctx.moveTo(cx+ex-3.5, ey-3.5); ctx.lineTo(cx+ex+3.5, ey+3.5); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(cx+ex+3.5, ey-3.5); ctx.lineTo(cx+ex-3.5, ey+3.5); ctx.stroke();
-    });
-  }
-
-  if (cookie.alive) {
-    const leg = Math.sin(frame * 0.3) * 10;
-    ctx.strokeStyle = CHAR.body[0]; ctx.lineWidth = 6; ctx.lineCap = 'round';
-    ctx.beginPath(); ctx.moveTo(cx-8, cookie.y-6); ctx.lineTo(cx-12+leg, cookie.y+9); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(cx+8, cookie.y-6); ctx.lineTo(cx+12-leg, cookie.y+9); ctx.stroke();
-    ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(cx-16, cy+4); ctx.lineTo(cx-24, cy-2+Math.sin(frame*0.2)*4); ctx.stroke();
-  }
+  const gChar = { body: CHAR.body, chip: CHAR.chip, eye: CHAR.eye, id: CHAR.id };
+  const runT = Math.sin(frame * 0.3);
+  drawGingerbread(ctx, cx, cy, 0.85, gChar, {
+    alive: cookie.alive,
+    legSwing: cookie.alive ? runT * 9 : 0,
+    bob: cookie.alive ? -Math.abs(runT) * 2 : 0,
+    frame: frame
+  });
   ctx.globalAlpha = 1;
   ctx.restore();
 }
@@ -1803,38 +1936,13 @@ function drawCharPreview(cv, ch) {
   const c = cv.getContext('2d');
   const S = 50;
   cv.width = S; cv.height = S;
-  const cx = S / 2, cy = S / 2;
-  const gr = c.createRadialGradient(cx - 5, cy - 5, 3, cx, cy, S / 2 - 2);
-  gr.addColorStop(0, ch.bodyColor[2]); gr.addColorStop(0.5, ch.bodyColor[1]); gr.addColorStop(1, ch.bodyColor[0]);
-  c.beginPath(); c.arc(cx, cy, S / 2 - 2, 0, Math.PI * 2); c.fillStyle = gr; c.fill();
-  if (ch.id === 'ghost') {
-    c.strokeStyle = 'rgba(200,200,255,0.4)'; c.lineWidth = 2;
-    c.beginPath(); c.arc(cx, cy, 10, 0, Math.PI * 1.5); c.stroke();
-  } else {
-    [[cx - 8, cy - 2, 3], [cx + 4, cy + 4, 2.5], [cx - 2, cy + 8, 2]].forEach(([bx, by, r]) => {
-      c.beginPath(); c.arc(bx, by, r, 0, Math.PI * 2); c.fillStyle = ch.chipColor; c.fill();
-    });
-  }
-  const ey = cy - 6;
-  c.fillStyle = ch.id === 'ghost' ? '#8080ff' : '#1a0800';
-  c.beginPath(); c.arc(cx - 5, ey, 2.5, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.arc(cx + 5, ey, 2.5, 0, Math.PI * 2); c.fill();
-  c.fillStyle = ch.eyeColor || '#fff';
-  c.beginPath(); c.arc(cx - 4, ey - 1, 1, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.arc(cx + 6, ey - 1, 1, 0, Math.PI * 2); c.fill();
-  if (ch.id === 'ghost') {
-    c.strokeStyle = '#8080ff'; c.lineWidth = 1.5;
-    c.beginPath(); c.arc(cx, cy + 5, 5, 0.1, Math.PI - 0.1, true); c.stroke();
-  } else {
-    c.strokeStyle = '#1a0800'; c.lineWidth = 1.5;
-    c.beginPath(); c.arc(cx, cy + 4, 5, 0.1, Math.PI - 0.1); c.stroke();
-  }
+  drawGingerbread(c, S / 2, S / 2 + 2, 0.62, { body: ch.bodyColor, chip: ch.chipColor, eye: ch.eyeColor, id: ch.id }, {});
   const badges = { yellowJelly:'🐻', dash:'⚡', jellyBonus:'★', healPotion:'💧', revive:'💫' };
   if (ch.bonus && badges[ch.bonus]) {
     c.font = '10px serif'; c.fillStyle = 'rgba(0,0,0,0.5)';
-    c.beginPath(); c.arc(cx + 14, cy - 14, 8, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(S - 8, 8, 8, 0, Math.PI * 2); c.fill();
     c.fillStyle = '#ffcc02'; c.textAlign = 'center'; c.textBaseline = 'middle';
-    c.fillText(badges[ch.bonus], cx + 14, cy - 14);
+    c.fillText(badges[ch.bonus], S - 8, 8);
   }
 }
 
@@ -1866,39 +1974,7 @@ function drawCharShowcase(ch) {
   const c  = cv.getContext('2d');
   const S  = cv.width; // 120
   c.clearRect(0, 0, S, S);
-  const cx = S / 2, cy = S / 2;
-  // body
-  const gr = c.createRadialGradient(cx - 10, cy - 10, 4, cx, cy, S / 2 - 3);
-  gr.addColorStop(0, ch.bodyColor[2]); gr.addColorStop(0.5, ch.bodyColor[1]); gr.addColorStop(1, ch.bodyColor[0]);
-  c.beginPath(); c.arc(cx, cy, S / 2 - 3, 0, Math.PI * 2); c.fillStyle = gr; c.fill();
-  // rim
-  c.strokeStyle = 'rgba(255,255,255,0.15)'; c.lineWidth = 2;
-  c.beginPath(); c.arc(cx, cy, S / 2 - 4, 0, Math.PI * 2); c.stroke();
-  // chips
-  if (ch.id === 'ghost') {
-    c.strokeStyle = 'rgba(200,200,255,0.45)'; c.lineWidth = 3;
-    c.beginPath(); c.arc(cx, cy, 22, 0, Math.PI * 1.5); c.stroke();
-  } else {
-    [[cx - 16, cy - 4, 6], [cx + 8, cy + 8, 5], [cx - 4, cy + 16, 4]].forEach(([bx, by, r]) => {
-      c.beginPath(); c.arc(bx, by, r, 0, Math.PI * 2); c.fillStyle = ch.chipColor; c.fill();
-    });
-  }
-  // eyes
-  const ey = cy - 12;
-  c.fillStyle = ch.id === 'ghost' ? '#8080ff' : '#1a0800';
-  c.beginPath(); c.arc(cx - 10, ey, 5, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.arc(cx + 10, ey, 5, 0, Math.PI * 2); c.fill();
-  c.fillStyle = ch.eyeColor || '#fff';
-  c.beginPath(); c.arc(cx - 8, ey - 2, 2, 0, Math.PI * 2); c.fill();
-  c.beginPath(); c.arc(cx + 12, ey - 2, 2, 0, Math.PI * 2); c.fill();
-  // mouth
-  if (ch.id === 'ghost') {
-    c.strokeStyle = '#8080ff'; c.lineWidth = 2.5;
-    c.beginPath(); c.arc(cx, cy + 10, 9, 0.1, Math.PI - 0.1, true); c.stroke();
-  } else {
-    c.strokeStyle = '#1a0800'; c.lineWidth = 2.5;
-    c.beginPath(); c.arc(cx, cy + 8, 9, 0.1, Math.PI - 0.1); c.stroke();
-  }
+  drawGingerbread(c, S / 2, S / 2 + 6, 2.05, { body: ch.bodyColor, chip: ch.chipColor, eye: ch.eyeColor, id: ch.id }, {});
 }
 
 function drawMapShowcase(mp) {
