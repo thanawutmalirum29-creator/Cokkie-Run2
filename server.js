@@ -8,10 +8,10 @@ const PORT = process.env.PORT || 3000;
 // ที่ client โหลดได้ตรงๆ) เพื่อกันการแก้ตัวเลขโกงผ่านไฟล์ฝั่ง client
 // ══════════════════════════════════════════════════════════
 const SKILLS = {
-  yellowJelly: { cooldownSec: 5,  jellyScore: 300 },
+  yellowJelly: { cooldownSec: 5,  jellyScore: 15 },
   revive:      { reviveHp: 20, hpPerJellies: 1, jelliesPerBonus: 10 },
   dash:        { cooldownSec: 15, durationSec: 4, speedMult: 1.8 },
-  jellyBonus:  { bonus: 1 },
+  jellyBonus:  { bonus: 5 },
   healPotion:  { cooldownSec: 25, healAmount: 3 },
 };
 
