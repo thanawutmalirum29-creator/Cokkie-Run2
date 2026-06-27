@@ -127,11 +127,14 @@ html, body {
 #pauseBtn:active { transform:scale(0.9); }
 
 /* ══════════════════════════════════════════════════════════
-   LOBBY SCREEN
+   LOBBY — COOKIE RUN KINGDOM STYLE
    ══════════════════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════════════════
-   LOBBY — NEW 3-COLUMN LAYOUT
-   ══════════════════════════════════════════════════════════ */
+@keyframes starTwinkle { 0%,100%{opacity:0.3;transform:scale(0.8)} 50%{opacity:1;transform:scale(1.2)} }
+@keyframes charBounce  { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-14px) rotate(1deg)} }
+@keyframes glowRing    { 0%,100%{opacity:0.5;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }
+@keyframes slideUp     { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+@keyframes hpBarFlash  { 0%,100%{filter:brightness(1)} 50%{filter:brightness(1.4)} }
+
 #bgCanvas {
   position:fixed; inset:0; width:100%; height:100%;
   pointer-events:none; z-index:0;
@@ -140,275 +143,367 @@ html, body {
   position:fixed; inset:0; z-index:1;
   display:flex; flex-direction:column;
   overflow:hidden;
+  font-family:'Segoe UI','Noto Sans Thai',sans-serif;
 }
 
-/* ── TOP BAR ── */
+/* ── TOP BAR (ล็อบบี้) ── */
 #lobbyTop {
   flex:0 0 auto;
   display:flex; align-items:center; justify-content:space-between;
-  padding:10px 18px 6px;
-  position:relative; z-index:2;
+  padding:8px 12px 4px;
+  position:relative; z-index:10;
+  gap:6px;
 }
+
+/* LEFT: player card */
+#lbyPlayerCard {
+  display:flex; align-items:center; gap:6px;
+  background:rgba(0,0,0,0.55);
+  border:1.5px solid rgba(255,200,50,0.5);
+  border-radius:24px; padding:4px 12px 4px 6px;
+  backdrop-filter:blur(4px);
+  flex:0 0 auto;
+}
+#lbyLvBadge {
+  background:linear-gradient(135deg,#c87800,#ffcc02);
+  color:#3a1a00; font-size:10px; font-weight:900;
+  border-radius:50%; width:28px; height:28px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 2px 6px rgba(0,0,0,0.4);
+  flex:0 0 28px;
+}
+#lbyPlayerName {
+  font-size:12px; font-weight:800; color:#ffe0b2;
+  white-space:nowrap;
+}
+#lbyXpBar {
+  font-size:9px; color:#ffb74d; white-space:nowrap;
+}
+
+/* CENTER: title zone */
 #lobbyTitle {
-  font-size:clamp(18px,3vw,32px);
-  font-weight:900; letter-spacing:2px;
-  background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);
+  flex:1; text-align:center;
+  font-size:clamp(18px,3.5vw,34px);
+  font-weight:900; letter-spacing:3px;
+  background:linear-gradient(135deg,#fff5c0,#ffcc02,#ff9f35,#ff6b35);
   -webkit-background-clip:text; -webkit-text-fill-color:transparent;
   background-clip:text;
-  filter:drop-shadow(0 0 12px #ff6b3566);
-  animation:floatY 3.2s ease-in-out infinite;
+  filter:drop-shadow(0 0 14px #ffcc0266);
+  animation:floatY 3.5s ease-in-out infinite;
   display:inline-block; line-height:1;
 }
+
+/* RIGHT: currency + icons */
 #lobbyTopRight {
-  display:flex; align-items:center; gap:8px;
+  display:flex; align-items:center; gap:5px;
+  flex:0 0 auto;
 }
-.lby-badge {
-  font-size:11px; font-weight:700; color:#ff8a65;
-  background:rgba(255,107,53,0.12); border:1px solid rgba(255,107,53,0.3);
-  border-radius:20px; padding:4px 12px; white-space:nowrap;
+.lby-currency {
+  display:flex; align-items:center; gap:3px;
+  background:rgba(0,0,0,0.55); border:1.5px solid rgba(100,180,255,0.4);
+  border-radius:20px; padding:4px 9px 4px 6px;
+  font-size:11px; font-weight:800; color:#e8f4ff;
+  backdrop-filter:blur(4px);
+}
+.lby-currency-gem {
+  border-color:rgba(255,200,50,0.5); color:#ffe566;
+}
+.lby-currency .icon { font-size:13px; line-height:1; }
+.lby-icon-btn {
+  width:32px; height:32px; border-radius:50%;
+  background:rgba(0,0,0,0.5); border:1.5px solid rgba(255,255,255,0.2);
+  display:flex; align-items:center; justify-content:center;
+  font-size:14px; cursor:pointer;
+  transition:background 0.15s, transform 0.12s;
+  touch-action:manipulation; position:relative;
+}
+.lby-icon-btn:active { transform:scale(0.9); }
+.lby-notif-dot {
+  position:absolute; top:1px; right:1px;
+  width:8px; height:8px; background:#e53935;
+  border-radius:50%; border:1px solid #0d0200;
 }
 
-/* ── MAIN 3-COL ── */
-#lobbyMain {
-  flex:1 1 0; min-height:0;
-  display:grid;
-  grid-template-columns:200px 1fr 220px;
-  gap:10px;
-  padding:0 14px 10px;
-  position:relative; z-index:2;
+/* ── SECONDARY TOP: location banner ── */
+#lbyLocBanner {
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center; gap:6px;
+  padding:2px 12px 6px;
+  position:relative; z-index:10;
+}
+.lby-loc-pill {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(0,0,0,0.45); border:1.5px solid rgba(100,200,100,0.4);
+  border-radius:20px; padding:4px 14px;
+  font-size:11px; font-weight:700; color:#a8e6a8;
+  backdrop-filter:blur(4px);
 }
 
-/* ── PANEL shared ── */
-.lby-panel {
-  background:linear-gradient(170deg,rgba(30,8,0,0.7),rgba(10,2,0,0.55));
-  border:1.5px solid rgba(255,107,53,0.28);
-  border-radius:14px;
-  display:flex; flex-direction:column;
-  overflow:hidden;
-  box-shadow:0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
+/* ── HP BAR (center top) ── */
+#lbyHpBar {
+  flex:0 0 auto;
+  display:flex; align-items:center; justify-content:center;
+  padding:0 60px 6px;
+  position:relative; z-index:10;
+}
+#lbyHpWrap {
+  width:100%; max-width:400px;
+  background:rgba(0,0,0,0.5);
+  border:1.5px solid rgba(255,80,80,0.5);
+  border-radius:99px; height:20px;
+  position:relative; overflow:hidden;
+  box-shadow:0 2px 10px rgba(0,0,0,0.4);
+}
+#lbyHpFill {
+  height:100%; width:47.7%;
+  background:linear-gradient(90deg,#c62828,#ef5350,#ff8a80);
+  border-radius:99px;
   position:relative;
 }
-.lby-panel::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:1.5px;
-  background:linear-gradient(90deg,transparent,#ff6b35aa,#ffcc0288,#ff6b35aa,transparent);
+#lbyHpFill::after {
+  content:''; position:absolute; top:3px; left:10px;
+  width:30%; height:5px; border-radius:99px;
+  background:rgba(255,255,255,0.3);
 }
-.lby-panel-head {
-  flex:0 0 auto;
-  font-size:11px; font-weight:800; letter-spacing:1.5px; text-transform:uppercase;
-  color:#ffb74d; padding:9px 12px 6px;
-  display:flex; align-items:center; gap:6px;
-  border-bottom:1px solid rgba(255,107,53,0.15);
+#lbyHpText {
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:10px; font-weight:800; color:#fff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
+  pointer-events:none;
+}
+#lbyHpHeart {
+  position:absolute; left:8px; top:50%; transform:translateY(-50%);
+  font-size:11px;
+}
+#lbyHpInfo {
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  width:20px; height:20px; display:flex; align-items:center; justify-content:center;
+  font-size:10px; color:#aaa; cursor:pointer;
 }
 
-/* ── LEFT: CHARACTER LIST ── */
-#charPanel { }
-.char-list {
+/* ── MAIN CENTER AREA ── */
+#lobbyMain {
   flex:1 1 0; min-height:0;
-  overflow-y:auto; overflow-x:hidden;
-  scrollbar-width:none;
-  padding:6px 8px;
-  display:flex; flex-direction:column; gap:5px;
+  position:relative; z-index:2;
+  display:flex; align-items:stretch;
 }
-.char-list::-webkit-scrollbar { display:none; }
-.char-row {
-  display:flex; align-items:center; gap:8px;
-  padding:7px 8px; border-radius:10px;
-  cursor:pointer; position:relative;
-  border:1.5px solid transparent;
-  transition:all 0.15s cubic-bezier(.2,.8,.2,1);
-  background:rgba(255,255,255,0.03);
-  user-select:none; -webkit-tap-highlight-color:transparent;
+
+/* LEFT SIDE BUTTONS */
+#lbyLeftBtns {
+  position:absolute; left:10px; top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:8px;
+  z-index:5;
 }
-.char-row:hover {
-  border-color:rgba(255,107,53,0.4);
-  background:rgba(255,107,53,0.1);
-  transform:translateX(3px);
+.lby-side-btn {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  cursor:pointer; touch-action:manipulation;
+  animation:slideUp 0.4s ease both;
+  user-select:none;
 }
-.char-row.selected {
-  border-color:#ffcc02;
-  background:rgba(255,204,2,0.1);
-  box-shadow:0 0 12px rgba(255,204,2,0.15);
-}
-.char-row.selected::before {
-  content:'▶'; position:absolute; left:-2px;
-  font-size:8px; color:#ffcc02;
-}
-.char-row-avatar {
-  width:34px; height:34px; flex:0 0 34px;
-  border-radius:50%;
-  background:radial-gradient(circle,rgba(255,255,255,0.05),transparent 70%);
-  border:1px solid rgba(255,255,255,0.1);
+.lby-side-btn:active .lby-side-icon { transform:scale(0.9); }
+.lby-side-icon {
+  width:52px; height:52px; border-radius:14px;
   display:flex; align-items:center; justify-content:center;
-  overflow:hidden;
+  font-size:22px;
+  background:linear-gradient(145deg,rgba(40,15,0,0.85),rgba(20,5,0,0.75));
+  border:2px solid rgba(255,150,50,0.45);
+  box-shadow:0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  transition:transform 0.12s, box-shadow 0.12s;
+  position:relative;
 }
-.char-row-avatar canvas { display:block; }
-.char-row-info { flex:1; min-width:0; }
-.char-row-name { font-size:11px; font-weight:800; color:#ffe0b2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.char-row-hp   { font-size:9px; color:#ff8a65; margin-top:1px; }
+.lby-side-icon:hover { box-shadow:0 6px 20px rgba(255,120,30,0.4); }
+.lby-side-label {
+  font-size:9px; font-weight:700; color:#ffb74d;
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
+  text-align:center; white-space:nowrap;
+}
+.lby-side-notif {
+  position:absolute; top:-4px; right:-4px;
+  width:12px; height:12px; background:#e53935;
+  border-radius:50%; border:1.5px solid #0d0200;
+  font-size:7px; color:#fff; font-weight:900;
+  display:flex; align-items:center; justify-content:center;
+}
 
-/* ── CENTER: PREVIEW ── */
-#centerPanel {
-  background:linear-gradient(170deg,rgba(25,5,0,0.5),rgba(5,1,0,0.4));
-  border-color:rgba(255,107,53,0.2);
+/* RIGHT SIDE BUTTONS */
+#lbyRightBtns {
+  position:absolute; right:10px; top:50%; transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:8px;
+  z-index:5;
 }
-#charShowcase {
-  flex:1 1 0; min-height:0;
-  display:flex; flex-direction:column;
+.lby-event-btn {
+  display:flex; flex-direction:column; align-items:center; gap:2px;
+  cursor:pointer; touch-action:manipulation;
+  user-select:none;
+}
+.lby-event-btn:active .lby-event-icon { transform:scale(0.9); }
+.lby-event-icon {
+  width:54px; height:54px; border-radius:14px;
+  display:flex; align-items:center; justify-content:center;
+  font-size:20px;
+  background:linear-gradient(145deg,rgba(30,10,40,0.85),rgba(10,3,20,0.75));
+  border:2px solid rgba(180,100,255,0.45);
+  box-shadow:0 4px 14px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
+  transition:transform 0.12s;
+  position:relative;
+  flex-direction:column; gap:1px;
+}
+.lby-event-icon .ev-top {
+  font-size:9px; font-weight:900;
+  color:#e0b0ff; letter-spacing:0.5px;
+  line-height:1;
+}
+.lby-event-icon .ev-emoji { font-size:20px; line-height:1; }
+.lby-event-label {
+  font-size:9px; font-weight:700; color:#c9a0ff;
+  text-shadow:0 1px 3px rgba(0,0,0,0.8);
+  text-align:center; white-space:nowrap;
+}
+.lby-event-notif {
+  position:absolute; top:-4px; right:-4px;
+  width:12px; height:12px; background:#e53935;
+  border-radius:50%; border:1.5px solid #0d0200;
+}
+
+/* CENTER SHOWCASE */
+#centerShowcase {
+  flex:1; display:flex; flex-direction:column;
   align-items:center; justify-content:center;
-  gap:0; padding:10px 16px 0;
+  padding:0 80px;
   position:relative;
 }
 #showcaseGlow {
-  position:absolute; width:160px; height:160px;
+  position:absolute; width:220px; height:220px;
   border-radius:50%;
-  background:radial-gradient(circle,var(--glow-color,#ff6b3555) 0%,transparent 70%);
+  background:radial-gradient(circle,var(--glow-color,rgba(180,120,255,0.3)) 0%,transparent 70%);
   pointer-events:none;
-  transition:background 0.5s;
+  animation:glowRing 2.5s ease-in-out infinite;
 }
 #showcaseCanvas {
-  position:relative; z-index:1;
+  position:relative; z-index:2;
   display:block;
-  filter:drop-shadow(0 0 18px var(--glow-color,#ff6b3577));
-  animation:charBounce 1.8s ease-in-out infinite;
+  filter:drop-shadow(0 0 22px var(--glow-color,rgba(180,120,255,0.6)));
+  animation:charBounce 2s ease-in-out infinite;
   transition:filter 0.5s;
 }
-@keyframes charBounce {
-  0%,100%{ transform:translateY(0) rotate(-2deg); }
-  50%    { transform:translateY(-12px) rotate(2deg); }
+
+/* Audience / crowd backdrop */
+#showcaseCrowd {
+  position:absolute; bottom:30%; left:50%; transform:translateX(-50%);
+  width:70%; height:40%;
+  background:radial-gradient(ellipse,rgba(180,140,255,0.15) 0%,transparent 70%);
+  border-radius:50%;
+  z-index:1;
+  pointer-events:none;
+}
+/* Character name plate */
+#showcaseNamePlate {
+  position:relative; z-index:3; margin-top:10px;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
 }
 #showcaseName {
-  position:relative; z-index:1; margin-top:12px;
-  font-size:clamp(16px,2.5vw,22px); font-weight:900; color:#ffe0b2;
-  text-shadow:0 0 16px rgba(255,107,53,0.5);
-  letter-spacing:0.5px; text-align:center;
-}
-#showcaseDesc {
-  position:relative; z-index:1; margin-top:4px;
-  font-size:clamp(9px,1.3vw,11px); color:#ff8a65;
-  text-align:center; line-height:1.5;
-  padding:0 8px;
-  max-width:240px;
-}
-#showcaseBonusBadge {
-  position:relative; z-index:1; margin-top:8px;
-  display:flex; align-items:center; gap:6px;
-  background:rgba(255,204,2,0.12); border:1px solid rgba(255,204,2,0.35);
-  border-radius:20px; padding:4px 12px;
-  font-size:10px; font-weight:800; color:#ffcc02;
+  font-size:clamp(14px,2.2vw,20px); font-weight:900; color:#ffe0b2;
+  text-shadow:0 0 16px rgba(180,120,255,0.6);
   letter-spacing:0.5px;
 }
+#showcaseDesc {
+  font-size:clamp(9px,1.1vw,10px); color:#c9a0ff;
+  text-align:center; line-height:1.5; padding:0 8px;
+}
+#showcaseBonusBadge {
+  display:flex; align-items:center; gap:6px;
+  background:rgba(255,204,2,0.12); border:1px solid rgba(255,204,2,0.4);
+  border-radius:20px; padding:3px 10px;
+  font-size:9px; font-weight:800; color:#ffcc02;
+}
 
-#mapShowcase {
+/* ── BOTTOM NAV BAR ── */
+#lbyBottomBar {
   flex:0 0 auto;
-  margin:8px 12px 12px;
-  border-radius:10px; overflow:hidden;
-  border:1.5px solid rgba(255,107,53,0.25);
-  position:relative;
+  display:flex; align-items:stretch;
+  gap:4px; padding:6px 8px 8px;
+  background:linear-gradient(0deg,rgba(0,0,0,0.7) 0%,rgba(0,0,0,0.3) 100%);
+  border-top:1px solid rgba(255,255,255,0.08);
+  position:relative; z-index:10;
 }
-#mapShowcaseCanvas { display:block; width:100%; }
-#mapShowcaseOverlay {
-  position:absolute; inset:0;
-  background:linear-gradient(to top,rgba(0,0,0,0.65) 0%,transparent 60%);
-  display:flex; align-items:flex-end; padding:8px 10px;
+.lby-nav-btn {
+  flex:1; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:3px;
+  padding:8px 4px;
+  background:linear-gradient(160deg,rgba(50,25,5,0.8),rgba(25,10,0,0.7));
+  border:1.5px solid rgba(255,150,50,0.3);
+  border-radius:14px; cursor:pointer;
+  touch-action:manipulation; user-select:none;
+  transition:all 0.12s cubic-bezier(.2,.8,.2,1);
+  box-shadow:0 3px 10px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
+  -webkit-tap-highlight-color:transparent;
+  position:relative; overflow:hidden;
 }
-#mapShowcaseName {
-  font-size:12px; font-weight:800; color:#ffe0b2;
-  text-shadow:0 1px 4px rgba(0,0,0,0.8);
+.lby-nav-btn::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg,transparent,rgba(255,200,100,0.4),transparent);
 }
-#mapShowcaseTag {
-  font-size:9px; color:#ffb74d; margin-left:6px;
-}
-#mapShowcaseSpeed {
-  margin-left:auto;
-  font-size:9px; color:#ff8a65;
-  background:rgba(0,0,0,0.4); border-radius:8px; padding:2px 6px;
+.lby-nav-btn:active { transform:scale(0.95); box-shadow:0 1px 5px rgba(0,0,0,0.4); }
+.lby-nav-btn:hover  { border-color:rgba(255,180,80,0.5); background:linear-gradient(160deg,rgba(70,35,5,0.85),rgba(40,15,0,0.75)); }
+.lby-nav-icon { font-size:22px; line-height:1; }
+.lby-nav-label {
+  font-size:10px; font-weight:800; color:#ffe0b2;
+  white-space:nowrap; text-align:center;
+  line-height:1.2;
 }
 
-/* ── RIGHT: MAP LIST + START ── */
-#rightCol {
-  display:flex; flex-direction:column; gap:8px;
+/* PLAY button — special wide gold button */
+#lbyPlayBtn {
+  flex:2.2 !important;
+  background:linear-gradient(135deg,#e6a200,#ffcc02,#ffd740,#e6a200) !important;
+  border-color:rgba(255,240,100,0.6) !important;
+  border-radius:16px !important;
+  box-shadow:0 4px 20px rgba(255,180,0,0.5), 0 0 0 2px rgba(255,255,255,0.1) inset, 0 6px 0 rgba(140,80,0,0.8) !important;
+  position:relative; overflow:hidden;
 }
-#mapPanel { flex:1 1 0; min-height:0; }
-.map-list {
-  flex:1 1 0; min-height:0;
-  overflow-y:auto; overflow-x:hidden;
-  scrollbar-width:none;
-  padding:6px 8px;
-  display:flex; flex-direction:column; gap:5px;
-}
-.map-list::-webkit-scrollbar { display:none; }
-.map-row {
-  display:flex; align-items:center; gap:8px;
-  padding:6px 8px; border-radius:10px;
-  cursor:pointer; position:relative;
-  border:1.5px solid transparent;
-  transition:all 0.15s cubic-bezier(.2,.8,.2,1);
-  background:rgba(255,255,255,0.03);
-  user-select:none; -webkit-tap-highlight-color:transparent;
-}
-.map-row:hover {
-  border-color:rgba(255,107,53,0.4);
-  background:rgba(255,107,53,0.1);
-  transform:translateX(-3px);
-}
-.map-row.selected {
-  border-color:#ffcc02;
-  background:rgba(255,204,2,0.1);
-  box-shadow:0 0 12px rgba(255,204,2,0.15);
-}
-.map-row.selected::after {
-  content:'◀'; position:absolute; right:2px;
-  font-size:8px; color:#ffcc02;
-}
-.map-row-thumb {
-  width:44px; height:28px; flex:0 0 44px;
-  border-radius:6px; overflow:hidden;
-  border:1px solid rgba(255,255,255,0.08);
-}
-.map-row-thumb canvas { width:100%; height:100%; display:block; }
-.map-row-info { flex:1; min-width:0; }
-.map-row-name { font-size:11px; font-weight:800; color:#ffe0b2; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.map-row-tag  { font-size:9px; color:#ff8a65; margin-top:1px; }
-.map-row-spd  { font-size:8px; color:#ff6b35; }
-
-/* ── START BOX ── */
-#startBox {
-  flex:0 0 auto;
-  background:linear-gradient(170deg,rgba(30,8,0,0.75),rgba(10,2,0,0.6));
-  border:1.5px solid rgba(255,107,53,0.35);
-  border-radius:14px; padding:12px 14px;
-  display:flex; flex-direction:column; gap:8px;
-  position:relative;
-  box-shadow:0 4px 20px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.03);
-}
-#startBox::before {
-  content:''; position:absolute; top:0; left:0; right:0; height:1.5px;
-  background:linear-gradient(90deg,transparent,#ff6b35aa,#ffcc0288,#ff6b35aa,transparent);
-}
-#startReadout {
-  font-size:10px; color:#ffb74d; text-align:center;
-  background:rgba(255,107,53,0.08); border:1px solid rgba(255,107,53,0.2);
-  border-radius:8px; padding:5px 8px; line-height:1.5;
-}
-#startReadout .sr-char { color:#ffcc02; font-weight:800; }
-#startReadout .sr-map  { color:#ff8a65; font-weight:700; }
-#startBtn {
-  width:100%;
-  padding:13px 0; font-size:clamp(14px,1.8vw,17px);
-  font-weight:900; letter-spacing:1.5px;
-  background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);
-  color:#fff; border:none; border-radius:10px; cursor:pointer;
-  box-shadow:0 4px 24px #ff6b3566, 0 0 0 2px rgba(255,255,255,0.08) inset;
-  transition:transform 0.12s, box-shadow 0.12s;
-  touch-action:manipulation; position:relative; overflow:hidden;
-}
-#startBtn::before {
+#lbyPlayBtn::after {
   content:''; position:absolute; top:0; bottom:0; width:40%;
-  background:linear-gradient(115deg,transparent,rgba(255,255,255,0.45),transparent);
-  animation:shine 2.6s ease-in-out infinite;
+  background:linear-gradient(115deg,transparent,rgba(255,255,255,0.5),transparent);
+  animation:shine 2.2s ease-in-out infinite;
 }
-#startBtn:active { transform:scale(0.96); box-shadow:0 2px 10px #ff6b3544; }
-#startBtn:hover  { transform:translateY(-2px); box-shadow:0 8px 32px #ff6b3588; }
+#lbyPlayBtn .lby-nav-icon { font-size:0; }
+#lbyPlayBtn .lby-nav-label {
+  font-size:clamp(16px,2.5vw,22px); font-weight:900;
+  color:#3a1a00; letter-spacing:1.5px;
+  text-shadow:0 1px 0 rgba(255,255,255,0.3);
+}
+#lbyPlayBtn:active {
+  transform:scale(0.97) translateY(2px) !important;
+  box-shadow:0 2px 8px rgba(255,180,0,0.4), 0 0 0 2px rgba(255,255,255,0.1) inset, 0 3px 0 rgba(140,80,0,0.8) !important;
+}
+
+/* Rewards button special */
+#lbyRewardsBtn {
+  flex:1.2 !important;
+}
+#lbyRewardsBtn .lby-nav-icon {
+  font-size:28px;
+  filter:drop-shadow(0 0 8px rgba(255,200,50,0.7));
+}
+
+/* ── Map name display (bottom left overlay) ── */
+#lbyMapName {
+  position:absolute; bottom:75px; left:90px;
+  font-size:10px; color:rgba(200,200,200,0.7);
+  font-weight:600; pointer-events:none; z-index:6;
+  background:rgba(0,0,0,0.3); border-radius:8px; padding:2px 8px;
+}
+
+/* ── LEGACY: Keep these for compat even though hidden ── */
+.lby-panel, .lby-panel-head, .char-list, .char-row, .char-row-avatar, .char-row-info,
+.char-row-name, .char-row-hp, .map-list, .map-row, .map-row-thumb,
+.map-row-info, .map-row-name, .map-row-tag, .map-row-spd,
+#mapShowcase, #mapShowcaseCanvas, #mapShowcaseOverlay, #mapShowcaseName,
+#mapShowcaseTag, #mapShowcaseSpeed, #charPanel, #mapPanel, #rightCol,
+#centerPanel, #startBox, #startReadout { display:none !important; }
+
+/* ── START BTN (still in DOM but hidden; actual play is #lbyPlayBtn) ── */
+#startBtn { display:none !important; }
 
 /* ══════════════════════════════════════════════════════════
    LOADING SCREEN — โชว์ระหว่างคำนวณแมพล่วงหน้า
@@ -609,30 +704,135 @@ canvas { display:block; }
 
   <!-- TOP BAR -->
   <div id="lobbyTop">
+    <!-- Player card -->
+    <div id="lbyPlayerCard">
+      <div id="lbyLvBadge">105</div>
+      <div>
+        <div id="lbyPlayerName">SonicGamer501</div>
+        <div id="lbyXpBar">66,170 / 100,000</div>
+      </div>
+    </div>
+
+    <!-- Title -->
     <span id="lobbyTitle">🍪 คุกกี้วิ่ง!</span>
+
+    <!-- Currencies + icons -->
     <div id="lobbyTopRight">
-      <span class="lby-badge">🏆 <span id="lobbyBest">0</span></span>
+      <div class="lby-currency lby-currency-gem">
+        <span class="icon">💎</span>
+        <span id="lobbyGems">6,106</span>
+      </div>
+      <div class="lby-currency">
+        <span class="icon">🪙</span>
+        <span id="lobbyCoin">16,334,732</span>
+      </div>
+      <div class="lby-icon-btn" title="การแจ้งเตือน">🔔<span class="lby-notif-dot"></span></div>
+      <div class="lby-icon-btn" title="ข้อความ">💬</div>
+      <div class="lby-icon-btn" title="เมล">✉️<span class="lby-notif-dot"></span></div>
+      <div class="lby-icon-btn" title="เพื่อน">👥<span class="lby-notif-dot"></span></div>
+      <div class="lby-icon-btn" title="ตั้งค่า">⚙️</div>
+      <div class="lby-icon-btn" title="เมนู">☰<span class="lby-notif-dot"></span></div>
     </div>
   </div>
 
-  <!-- MAIN 3-COL -->
+  <!-- Location / zone banner -->
+  <div id="lbyLocBanner">
+    <div class="lby-loc-pill">⏸ 행복한 공원</div>
+  </div>
+
+  <!-- HP Bar -->
+  <div id="lbyHpBar">
+    <div id="lbyHpWrap">
+      <div id="lbyHpFill"></div>
+      <span id="lbyHpHeart">❤️</span>
+      <span id="lbyHpText">477 / 1,000</span>
+      <span id="lbyHpInfo">ℹ</span>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
   <div id="lobbyMain">
 
-    <!-- LEFT: ตัวละคร -->
-    <div class="lby-panel" id="charPanel">
-      <div class="lby-panel-head">🧁 ตัวละคร</div>
-      <div class="char-list" id="charGrid"></div>
+    <!-- LEFT SIDE BUTTONS -->
+    <div id="lbyLeftBtns">
+      <div class="lby-side-btn" onclick="">
+        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(20,10,60,0.9),rgba(10,5,40,0.8));border-color:rgba(150,100,255,0.5);">
+          🌟
+          <span class="lby-side-notif"></span>
+        </div>
+        <span class="lby-side-label">Legendary<br>Treasure!</span>
+      </div>
+      <div class="lby-side-btn" onclick="" style="margin-top:4px;">
+        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(60,20,10,0.9),rgba(40,10,5,0.8));">
+          👑
+          <span class="lby-side-notif"></span>
+        </div>
+        <span class="lby-side-label">Royal<br>Club</span>
+      </div>
+      <div class="lby-side-btn" onclick="">
+        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(40,20,10,0.9),rgba(25,10,5,0.8));">
+          🍪
+        </div>
+        <span class="lby-side-label">OvenPass</span>
+      </div>
+      <div class="lby-side-btn" onclick="">
+        <div class="lby-side-icon" style="background:linear-gradient(145deg,rgba(20,50,20,0.9),rgba(10,30,10,0.8));border-color:rgba(100,255,100,0.4);">
+          🎁
+          <span class="lby-side-notif" style="content:'FREE'"></span>
+        </div>
+        <span class="lby-side-label" style="color:#88ff88;">FREE!</span>
+      </div>
     </div>
 
-    <!-- CENTER: showcase -->
-    <div class="lby-panel" id="centerPanel">
-      <div id="charShowcase">
-        <div id="showcaseGlow"></div>
-        <canvas id="showcaseCanvas" width="120" height="120"></canvas>
+    <!-- CENTER: Character showcase -->
+    <div id="centerShowcase">
+      <div id="showcaseCrowd"></div>
+      <div id="showcaseGlow"></div>
+      <canvas id="showcaseCanvas" width="160" height="160"></canvas>
+      <div id="showcaseNamePlate">
         <div id="showcaseName">ช็อกโกแลต</div>
         <div id="showcaseDesc">ธรรมดา สมดุล</div>
         <div id="showcaseBonusBadge">⚡ สกิล: -</div>
       </div>
+    </div>
+
+    <!-- RIGHT SIDE EVENT BUTTONS -->
+    <div id="lbyRightBtns">
+      <div class="lby-event-btn" onclick="">
+        <div class="lby-event-icon" style="display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <span class="ev-top">🎁 EVENTS</span>
+        </div>
+        <span class="lby-event-label">Events</span>
+      </div>
+      <div class="lby-event-btn" onclick="">
+        <div class="lby-event-icon" style="border-color:rgba(100,200,255,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <span class="ev-top" style="color:#a0e0ff;">✉️</span>
+          <span style="font-size:8px;color:#a0e0ff;font-weight:800;">Invitation<br>Event</span>
+        </div>
+        <span class="lby-event-label" style="color:#a0e0ff;">Invitation</span>
+      </div>
+      <div class="lby-event-btn" onclick="">
+        <div class="lby-event-icon" style="border-color:rgba(255,200,50,0.5);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <span style="font-size:9px;font-weight:900;color:#ffd740;">7th</span>
+          <span style="font-size:8px;color:#ffd740;font-weight:800;">Anniversary</span>
+        </div>
+        <span class="lby-event-label" style="color:#ffd740;">Anniversary</span>
+      </div>
+      <div class="lby-event-btn" onclick="">
+        <div class="lby-event-icon" style="border-color:rgba(100,200,100,0.45);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+          <span class="ev-top" style="color:#88ff88;">⏸ Guild</span>
+        </div>
+        <span class="lby-event-label" style="color:#88ff88;">Guild</span>
+      </div>
+    </div>
+
+    <!-- LEGACY hidden panels (kept for JS compat) -->
+    <div class="lby-panel" id="charPanel" style="display:none!important">
+      <div class="lby-panel-head">🧁 ตัวละคร</div>
+      <div class="char-list" id="charGrid"></div>
+    </div>
+    <div class="lby-panel" id="centerPanel" style="display:none!important">
+      <div id="charShowcase"></div>
       <div id="mapShowcase">
         <canvas id="mapShowcaseCanvas" height="70"></canvas>
         <div id="mapShowcaseOverlay">
@@ -642,24 +842,45 @@ canvas { display:block; }
         </div>
       </div>
     </div>
-
-    <!-- RIGHT: แมพ + start -->
-    <div id="rightCol">
+    <div id="rightCol" style="display:none!important">
       <div class="lby-panel" id="mapPanel">
         <div class="lby-panel-head">🗺️ แมพ</div>
         <div class="map-list" id="mapGrid"></div>
       </div>
       <div id="startBox">
         <div id="startReadout">
-          <span class="sr-char" id="srChar">ช็อกโกแลต</span>
-          &nbsp;บน&nbsp;
-          <span class="sr-map" id="srMap">เบเกอรี่</span>
+          <span class="sr-char" id="srChar">ช็อกโกแลต</span>&nbsp;บน&nbsp;<span class="sr-map" id="srMap">เบเกอรี่</span>
         </div>
-        <button id="startBtn">▶ เริ่มวิ่ง!</button>
+        <button id="startBtn" style="display:none!important">▶ เริ่มวิ่ง!</button>
       </div>
     </div>
 
   </div><!-- /lobbyMain -->
+
+  <!-- BOTTOM NAV BAR -->
+  <div id="lbyBottomBar">
+    <button class="lby-nav-btn" onclick="">
+      <span class="lby-nav-icon">🍪</span>
+      <span class="lby-nav-label">Cookies</span>
+    </button>
+    <button class="lby-nav-btn" onclick="">
+      <span class="lby-nav-icon">👗</span>
+      <span class="lby-nav-label">Costume<br>Shop</span>
+    </button>
+    <button class="lby-nav-btn" onclick="">
+      <span class="lby-nav-icon">🎰</span>
+      <span class="lby-nav-label">Gacha</span>
+    </button>
+    <button class="lby-nav-btn" id="lbyRewardsBtn" onclick="">
+      <span class="lby-nav-icon">🧰</span>
+      <span class="lby-nav-label">Rewards</span>
+    </button>
+    <button class="lby-nav-btn" id="lbyPlayBtn" onclick="">
+      <span class="lby-nav-icon"></span>
+      <span class="lby-nav-label">PLAY!</span>
+    </button>
+  </div>
+
 </div>
 
 <!-- ══════════ LOADING SCREEN ══════════ -->
@@ -1912,20 +2133,155 @@ function showDead() {
 }
 
 // ══════════════════════════════════════════════════════════
-// LOBBY — BG EMBER ANIMATION
+// LOBBY — CRK-STYLE NIGHTTIME BG ANIMATION
 // ══════════════════════════════════════════════════════════
+// Stars
+const stars = Array.from({length:120}, () => ({
+  x: Math.random(), y: Math.random() * 0.65,
+  r: Math.random() * 1.5 + 0.4,
+  phase: Math.random() * Math.PI * 2,
+  speed: 0.015 + Math.random() * 0.025
+}));
+// Fireflies / embers
+const fireflies = Array.from({length:30}, () => ({
+  x: Math.random(), y: 0.4 + Math.random() * 0.5,
+  r: 1 + Math.random() * 2,
+  vx: (Math.random()-0.5)*0.0006, vy: -0.0008 - Math.random()*0.001,
+  hue: 60 + Math.random()*80,
+  life: Math.random()
+}));
+// Trees (silhouette)
+const trees = [
+  {x:0.02,h:0.38,w:0.05,type:'pine'},{x:0.08,h:0.28,w:0.035,type:'pine'},
+  {x:0.84,h:0.32,w:0.04,type:'pine'},{x:0.90,h:0.44,w:0.06,type:'pine'},
+  {x:0.96,h:0.26,w:0.03,type:'pine'},
+  {x:0.14,h:0.18,w:0.05,type:'round'},{x:0.78,h:0.16,w:0.045,type:'round'},
+];
+// Tents / camp (silhouettes in mid-ground)
+const tents = [
+  {x:0.15,y:0.82,w:0.07,h:0.08,c:'#28403a'},{x:0.22,y:0.84,w:0.05,h:0.06,c:'#3a3020'},
+  {x:0.72,y:0.83,w:0.06,h:0.07,c:'#2a3050'},{x:0.80,y:0.84,w:0.05,h:0.06,c:'#3a2830'},
+  {x:0.64,y:0.85,w:0.04,h:0.05,c:'#304028'},
+];
+// Glowing dots on ground (decorative lights)
+const groundLights = Array.from({length:18}, () => ({
+  x: Math.random(), y: 0.78 + Math.random()*0.12,
+  r: 2 + Math.random()*3, hue: Math.random()<0.5 ? 120+Math.random()*60 : 40+Math.random()*30,
+  phase: Math.random()*Math.PI*2
+}));
+let bgT = 0;
+
 function animBg() {
-  bgCtx.clearRect(0, 0, bgC.width, bgC.height);
-  const g = bgCtx.createLinearGradient(0, 0, 0, bgC.height);
-  g.addColorStop(0, '#0d0200'); g.addColorStop(0.6, '#1a0700'); g.addColorStop(1, '#2d0d00');
-  bgCtx.fillStyle = g; bgCtx.fillRect(0, 0, bgC.width, bgC.height);
-  embers.forEach(e => {
-    e.x += e.vx; e.y += e.vy; e.life += 0.006;
-    if (e.life > 1 || e.y < -10) { e.x = Math.random() * bgC.width; e.y = bgC.height + 5; e.life = 0; }
-    const a = Math.sin(e.life * Math.PI) * 0.7;
-    bgCtx.beginPath(); bgCtx.arc(e.x, e.y, e.r, 0, Math.PI * 2);
-    bgCtx.fillStyle = `hsla(${e.hue},100%,65%,${a})`; bgCtx.fill();
+  bgT += 0.016;
+  const W = bgC.width, H = bgC.height;
+  bgCtx.clearRect(0, 0, W, H);
+
+  // Sky gradient — deep purple-blue night
+  const skyG = bgCtx.createLinearGradient(0, 0, 0, H);
+  skyG.addColorStop(0,   '#050518');
+  skyG.addColorStop(0.3, '#0a0b2e');
+  skyG.addColorStop(0.65,'#0d1535');
+  skyG.addColorStop(0.78,'#121d28');
+  skyG.addColorStop(1,   '#0f1c10');
+  bgCtx.fillStyle = skyG;
+  bgCtx.fillRect(0, 0, W, H);
+
+  // Stars
+  stars.forEach(s => {
+    const a = 0.35 + 0.65 * (0.5 + 0.5*Math.sin(bgT * s.speed + s.phase));
+    bgCtx.beginPath();
+    bgCtx.arc(s.x * W, s.y * H, s.r, 0, Math.PI*2);
+    bgCtx.fillStyle = `rgba(220,230,255,${a})`;
+    bgCtx.fill();
   });
+
+  // Distant hills / mountains
+  bgCtx.fillStyle = '#0a1520';
+  bgCtx.beginPath(); bgCtx.moveTo(0, H*0.62);
+  bgCtx.bezierCurveTo(W*0.15, H*0.48, W*0.35, H*0.55, W*0.5, H*0.52);
+  bgCtx.bezierCurveTo(W*0.65, H*0.49, W*0.82, H*0.57, W, H*0.60);
+  bgCtx.lineTo(W, H); bgCtx.lineTo(0, H); bgCtx.closePath();
+  bgCtx.fill();
+
+  // Mid hills darker
+  bgCtx.fillStyle = '#081018';
+  bgCtx.beginPath(); bgCtx.moveTo(0, H*0.70);
+  bgCtx.bezierCurveTo(W*0.2, H*0.60, W*0.4, H*0.66, W*0.55, H*0.63);
+  bgCtx.bezierCurveTo(W*0.7, H*0.60, W*0.85, H*0.68, W, H*0.65);
+  bgCtx.lineTo(W, H); bgCtx.lineTo(0, H); bgCtx.closePath();
+  bgCtx.fill();
+
+  // Ground
+  const groundG = bgCtx.createLinearGradient(0, H*0.78, 0, H);
+  groundG.addColorStop(0, '#0f1f12');
+  groundG.addColorStop(0.4, '#0a1a0c');
+  groundG.addColorStop(1, '#050f07');
+  bgCtx.fillStyle = groundG;
+  bgCtx.fillRect(0, H*0.78, W, H*0.22);
+
+  // Tents silhouettes
+  tents.forEach(t => {
+    bgCtx.fillStyle = t.c;
+    const tx = t.x*W, ty = t.y*H, tw = t.w*W, th = t.h*H;
+    bgCtx.beginPath();
+    bgCtx.moveTo(tx, ty+th); bgCtx.lineTo(tx+tw/2, ty); bgCtx.lineTo(tx+tw, ty+th);
+    bgCtx.closePath(); bgCtx.fill();
+    // window glow
+    bgCtx.fillStyle = `rgba(255,220,100,0.15)`;
+    bgCtx.beginPath(); bgCtx.arc(tx+tw/2, ty+th*0.65, tw*0.09, 0, Math.PI*2); bgCtx.fill();
+  });
+
+  // Trees (silhouette)
+  trees.forEach(tr => {
+    const tx = tr.x*W, ty = (1-tr.h)*H, tw = tr.w*W;
+    bgCtx.fillStyle = '#060e08';
+    if (tr.type === 'pine') {
+      bgCtx.beginPath();
+      bgCtx.moveTo(tx+tw/2, ty);
+      bgCtx.lineTo(tx+tw, ty+tr.h*H*0.7);
+      bgCtx.lineTo(tx+tw*0.65, ty+tr.h*H*0.55);
+      bgCtx.lineTo(tx+tw*0.85, ty+tr.h*H);
+      bgCtx.lineTo(tx+tw*0.15, ty+tr.h*H);
+      bgCtx.lineTo(tx+tw*0.35, ty+tr.h*H*0.55);
+      bgCtx.lineTo(tx, ty+tr.h*H*0.7);
+      bgCtx.closePath(); bgCtx.fill();
+    } else {
+      bgCtx.beginPath(); bgCtx.arc(tx+tw/2, ty+tw*0.5, tw*0.55, 0, Math.PI*2); bgCtx.fill();
+      bgCtx.fillRect(tx+tw*0.42, ty+tw, tw*0.16, tr.h*H*0.3);
+    }
+  });
+
+  // Ground decorative lights
+  groundLights.forEach(gl => {
+    const gx = gl.x*W, gy = gl.y*H;
+    const a = 0.4 + 0.6*(0.5+0.5*Math.sin(bgT*1.5+gl.phase));
+    const rr = gl.r * (0.8 + 0.4*(0.5+0.5*Math.sin(bgT*2+gl.phase)));
+    const grd = bgCtx.createRadialGradient(gx, gy, 0, gx, gy, rr*3);
+    grd.addColorStop(0, `hsla(${gl.hue},80%,70%,${a})`);
+    grd.addColorStop(1, `hsla(${gl.hue},80%,60%,0)`);
+    bgCtx.beginPath(); bgCtx.arc(gx, gy, rr*3, 0, Math.PI*2);
+    bgCtx.fillStyle = grd; bgCtx.fill();
+    bgCtx.beginPath(); bgCtx.arc(gx, gy, rr*0.6, 0, Math.PI*2);
+    bgCtx.fillStyle = `hsla(${gl.hue},100%,90%,${a*0.9})`; bgCtx.fill();
+  });
+
+  // Fireflies
+  fireflies.forEach(f => {
+    f.x += f.vx + Math.sin(bgT + f.phase)*0.0003;
+    f.y += f.vy;
+    f.life += 0.008;
+    if (f.life > 1 || f.y < 0.3) { f.x = Math.random(); f.y = 0.85 + Math.random()*0.1; f.life = 0; }
+    const fa = Math.sin(f.life * Math.PI) * 0.8;
+    bgCtx.beginPath(); bgCtx.arc(f.x*W, f.y*H, f.r, 0, Math.PI*2);
+    bgCtx.fillStyle = `hsla(${f.hue},100%,72%,${fa})`; bgCtx.fill();
+  });
+
+  // Subtle stage/spotlight below character
+  const spG = bgCtx.createRadialGradient(W/2, H*0.72, 0, W/2, H*0.72, W*0.18);
+  spG.addColorStop(0, 'rgba(160,100,255,0.12)');
+  spG.addColorStop(1, 'rgba(0,0,0,0)');
+  bgCtx.fillStyle = spG; bgCtx.fillRect(0, H*0.5, W, H*0.5);
+
   requestAnimationFrame(animBg);
 }
 
@@ -1972,9 +2328,9 @@ const showcaseGlow   = document.getElementById('showcaseGlow');
 function drawCharShowcase(ch) {
   const cv = showcaseCanvas;
   const c  = cv.getContext('2d');
-  const S  = cv.width; // 120
+  const S  = cv.width; // 160
   c.clearRect(0, 0, S, S);
-  drawGingerbread(c, S / 2, S / 2 + 6, 2.05, { body: ch.bodyColor, chip: ch.chipColor, eye: ch.eyeColor, id: ch.id }, {});
+  drawGingerbread(c, S / 2, S / 2 + 8, 2.7, { body: ch.bodyColor, chip: ch.chipColor, eye: ch.eyeColor, id: ch.id }, {});
 }
 
 function drawMapShowcase(mp) {
@@ -2085,6 +2441,14 @@ document.getElementById('startBtn').addEventListener('click', () => {
   goFullscreenLandscape(() => { resizeBg(); resize(); });
   startLoadingThenGame(selChar, selMap);
 });
+// Hook the new PLAY! button in the bottom bar
+const lbyPlayBtn = document.getElementById('lbyPlayBtn');
+if (lbyPlayBtn) {
+  lbyPlayBtn.addEventListener('click', () => {
+    goFullscreenLandscape(() => { resizeBg(); resize(); });
+    startLoadingThenGame(selChar, selMap);
+  });
+}
 document.getElementById('playBtn').addEventListener('click', startGame);
 document.getElementById('lobbyBtn').addEventListener('click', showLobbyScreen);
 document.getElementById('playAgainBtn').addEventListener('click', startGame);
