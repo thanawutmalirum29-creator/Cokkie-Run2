@@ -1535,7 +1535,7 @@ function rrectPath(c, x, y, w, h, r) {
 
 function drawJel(j) {
   if (j.done) return;
-  const bobY = j.trail ? Math.sin(frame * 0.08 + j.bob) * 3 : Math.sin(frame * 0.08 + j.bob) * 5;
+  const bobY = 0; // นิ่ง ไม่ลอยขึ้นลง
   ctx.save();
 
   if (j.trail) {
@@ -1576,7 +1576,7 @@ function drawJel(j) {
 
 function drawPot(p) {
   if (p.done) return;
-  const bobY = Math.sin(frame * 0.08 + p.bob) * 5;
+  const bobY = 0; // นิ่ง ไม่ลอยขึ้นลง
   ctx.save();
   ctx.translate(p.x, p.y + bobY);
   ctx.fillStyle = '#80deea'; ctx.fillRect(-3, -p.h/2-6, 6, 6);
@@ -1593,7 +1593,7 @@ function drawPot(p) {
 
 function drawItem(it) {
   if (it.done) return;
-  const bobY = Math.sin(frame * 0.09 + (it.x % 6) * 0.5) * 5;
+  const bobY = 0; // นิ่ง ไม่ลอยขึ้นลง
   ctx.save();
   ctx.translate(it.x, it.y + bobY);
 
@@ -2016,31 +2016,6 @@ function runFrame() {
   // ── Draw ─────────────────────────────────────────────
   ctx.clearRect(0, 0, GW, GH);
   drawBg(); obs.forEach(drawObs);
-
-  // วาดเส้นเชื่อมระหว่างเยลลี่ trail (guideline)
-  const trailJels = jels.filter(j => !j.done && j.trail);
-  // จัดกลุ่ม wave โดยดูจากช่องว่างระหว่าง x
-  if (trailJels.length > 1) {
-    ctx.save();
-    ctx.setLineDash([4, 6]);
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = 'rgba(255, 220, 50, 0.28)';
-    ctx.beginPath();
-    for (let i = 0; i < trailJels.length; i++) {
-      const j = trailJels[i];
-      const bobY = Math.sin(frame * 0.08 + j.bob) * 3;
-      if (i === 0) ctx.moveTo(j.x, j.y + bobY);
-      else {
-        // ข้ามถ้า gap ใหญ่เกิน (คนละ wave)
-        const prev = trailJels[i - 1];
-        if (j.x - prev.x > JELLY_SPACING * 2) ctx.moveTo(j.x, j.y + bobY);
-        else ctx.lineTo(j.x, j.y + bobY);
-      }
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-    ctx.restore();
-  }
 
   jels.forEach(drawJel); pots.forEach(drawPot); items.forEach(drawItem); drawCookie();
 
