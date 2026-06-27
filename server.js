@@ -15,10 +15,30 @@ const SKILLS = {
   healPotion:  { cooldownSec: 25, healAmount: 3 },
 };
 
+// ค่าพลังชีวิตของแต่ละคุกกี้ — ไม่ควรแก้ได้จาก client
+const CHAR_STATS = {
+  choco:      { maxHp: 70 },
+  strawberry: { maxHp: 55 },
+  matcha:     { maxHp: 55 },
+  vanilla:    { maxHp: 65 },
+  blueberry:  { maxHp: 50 },
+  ghost:      { maxHp: 88 },
+};
+
+// ความเร็ว/ความถี่สิ่งกีดขวางของแต่ละแมพ — กำหนดความยากจริง ไม่ควรแก้ได้จาก client
+const MAP_STATS = {
+  bakery:   { speed: 5,  obsInterval: 95 },
+  candy:    { speed: 6,  obsInterval: 85 },
+  icecream: { speed: 7,  obsInterval: 78 },
+  forest:   { speed: 8,  obsInterval: 70 },
+  lava:     { speed: 10, obsInterval: 60 },
+  space:    { speed: 9,  obsInterval: 65 },
+};
+
 // ── API routes ก่อน (ไม่ผ่าน static) ──────────────────────
 app.get('/api/skills', (req, res) => {
   res.set('Cache-Control', 'no-store');
-  res.json(SKILLS);
+  res.json({ skills: SKILLS, charStats: CHAR_STATS, mapStats: MAP_STATS });
 });
 
 // ── Root + alias ก่อน static — ได้ no-cache header แน่นอน ──
