@@ -150,7 +150,7 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 </head>
 <body>
 <div id="updateBanner">
-  <span>🆕 มีอัปเดตใหม่! <span id="ubVersionText" style="opacity:0.75;font-weight:600;"></span></span>
+  <span>🆕 มีอัปเดตใหม่!</span>
   <button id="updateNowBtn">โหลดใหม่</button>
   <button class="ubClose" id="updateLaterBtn">✕</button>
 </div>
@@ -158,7 +158,6 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
   <div class="ub-icon">🍪</div>
   <div class="ub-title">มีเวอร์ชันใหม่!<br>กรุณาอัปเดตก่อนเล่น</div>
   <div class="ub-sub">มีการอัปเดตเกม กดปุ่มด้านล่างเพื่อโหลดเวอร์ชันใหม่และเริ่มเล่นได้เลย</div>
-  <div class="ub-sub" id="ubBlockerVersionText" style="opacity:0.6;font-size:11px;"></div>
   <button class="ub-btn" id="updateBlockerBtn">🔄 อัปเดตและเข้าเกม</button>
 </div>
 <div id="rotatePrompt"><div class="icon">📱</div><p>หมุนโทรศัพท์แนวนอน<br>เพื่อเล่นเกม! 🍪</p></div>
@@ -331,6 +330,7 @@ function animBg(){
   const spG=bgCtx.createRadialGradient(W/2,H*0.72,0,W/2,H*0.72,W*0.18);spG.addColorStop(0,'rgba(160,100,255,0.12)');spG.addColorStop(1,'rgba(0,0,0,0)');bgCtx.fillStyle=spG;bgCtx.fillRect(0,H*0.5,W,H*0.5);
   requestAnimationFrame(animBg);
 }
+
 // ── showcase ──
 const showcaseCanvas=document.getElementById('showcaseCanvas'),showcaseGlow=document.getElementById('showcaseGlow');
 function drawCharShowcase(ch){const cv=showcaseCanvas,c=cv.getContext('2d'),S=cv.width;c.clearRect(0,0,S,S);drawGingerbread(c,S/2,S/2+8,2.7,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});}
@@ -421,87 +421,14 @@ if(screen.orientation)screen.orientation.addEventListener('change',()=>setTimeou
 
 <script>
 if('serviceWorker' in navigator){
-  let swReg=null,loadedVersion=null,serverVersion=null;
+  let swReg=null;
   function checkForUpdate(){if(swReg)swReg.update().catch(()=>{});}
-
-  // ดึง version จาก server ก่อน แล้วค่อย show UI (ไม่มี race condition)
-  function fetchServerVersion(){
-    return fetch('/api/version',{cache:'no-store'})
-      .then(r=>r.json())
-      .then(d=>{if(d.version)serverVersion=d.version;return d.version||null;})
-      .catch(()=>null);
-  }
-
-  function setVersionText(elIds){
-    const from=loadedVersion||'?';
-    const to=serverVersion||'?';
-    const txt='('+from+' → '+to+')';
-    elIds.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=txt;});
-  }
-
-  function showUpdateBlocker(reg){
-    const bl=document.getElementById('updateBlocker');
-    if(!bl||bl.classList.contains('show'))return;
-    fetchServerVersion().then(()=>{
-      setVersionText(['ubVersionText','ubBlockerVersionText']);
-      bl.classList.add('show');
-      document.getElementById('updateBlockerBtn').onclick=()=>{
-        if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});
-      };
-    });
-  }
-
-  function showUpdateBanner(reg){
-    const bn=document.getElementById('updateBanner');
-    if(!bn||bn.classList.contains('show'))return;
-    fetchServerVersion().then(()=>{
-      setVersionText(['ubVersionText','ubBlockerVersionText']);
-      bn.classList.add('show');
-      document.getElementById('updateNowBtn').onclick=()=>{bn.classList.remove('show');if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};
-      document.getElementById('updateLaterBtn').onclick=()=>bn.classList.remove('show');
-    });
-  }
-
+  function showUpdateBlocker(reg){const bl=document.getElementById('updateBlocker');if(!bl||bl.classList.contains('show'))return;bl.classList.add('show');document.getElementById('updateBlockerBtn').onclick=()=>{if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};}
+  function showUpdateBanner(reg){const bn=document.getElementById('updateBanner');if(!bn||bn.classList.contains('show'))return;bn.classList.add('show');document.getElementById('updateNowBtn').onclick=()=>{bn.classList.remove('show');if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};document.getElementById('updateLaterBtn').onclick=()=>bn.classList.remove('show');}
   function handleUpdate(reg){showUpdateBlocker(reg);}
   function handleReg(reg){swReg=reg;function onW(w){w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)handleUpdate(reg);});}if(reg.waiting){handleUpdate(reg);return;}if(reg.installing)onW(reg.installing);reg.addEventListener('updatefound',()=>{if(reg.installing)onW(reg.installing);});}
-
-  function updateVersionDisplay(){
-    fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{
-      if(d.version){
-        if(!loadedVersion)loadedVersion=d.version;
-        serverVersion=d.version;
-      }
-      const el=document.getElementById('appVersion');
-      if(el)el.textContent=d.version?'cookie-run-'+d.version:'cookie-run-?';
-    }).catch(()=>{
-      caches.keys().then(keys=>{
-        const c=keys.find(k=>k.startsWith('cookie-run-'));
-        if(c&&!loadedVersion)loadedVersion=c.replace(/^cookie-run-/,'');
-        const el=document.getElementById('appVersion');
-        if(el)el.textContent=c||'cookie-run-?';
-      }).catch(()=>{});
-    });
-  }
-
-  window.addEventListener('load',()=>{
-    // ดึง version แรกสุดไว้เป็น loadedVersion (เวอร์ชันที่ผู้เล่นใช้อยู่)
-    fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{
-      if(d.version&&!loadedVersion)loadedVersion=d.version;
-    }).catch(()=>{});
-
-    navigator.serviceWorker.register('/service-worker.js').then(reg=>{
-      handleReg(reg);
-      updateVersionDisplay();
-    }).catch(e=>console.warn('SW register failed',e));
-
-    updateVersionDisplay();
-    let refreshed=false;
-    navigator.serviceWorker.addEventListener('controllerchange',()=>{
-      if(refreshed)return;refreshed=true;window.location.reload();
-    });
-    setInterval(checkForUpdate,5*60*1000);
-    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate();});
-  });
+  function updateVersionDisplay(){fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{const el=document.getElementById('appVersion');if(el)el.textContent=d.version?'cookie-run-'+d.version:'cookie-run-?';}).catch(()=>{caches.keys().then(keys=>{const c=keys.find(k=>k.startsWith('cookie-run-'));const el=document.getElementById('appVersion');if(el)el.textContent=c||'cookie-run-?';}).catch(()=>{});});}
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('/service-worker.js').then(reg=>{handleReg(reg);updateVersionDisplay();}).catch(e=>console.warn('SW register failed',e));updateVersionDisplay();let refreshed=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshed)return;refreshed=true;window.location.reload();});setInterval(checkForUpdate,5*60*1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate();});});
 }
 </script>
 </body>
