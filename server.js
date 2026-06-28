@@ -6,7 +6,7 @@ const { Pool } = require('pg'); // npm install pg
 const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = 'v0.1.1';
+const APP_VERSION = 'v0.1.2';
 
 
 // ══════════════════════════════════════════════════════════
@@ -192,13 +192,20 @@ app.get('/service-worker.js', (req, res) => {
   });
 });
 
-// ── Root + alias ก่อน static — ได้ no-cache header แน่นอน ──
-app.get('/',      (req, res) => {
+
+// ใหม่
+app.get('/', (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
 });
-app.get('/lobby', (req, res) => res.redirect('/'));
-app.get('/game',  (req, res) => res.redirect('/'));
+app.get('/lobby', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.sendFile(path.join(__dirname, 'public', 'lobby.html'));
+});
+app.get('/game', (req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.sendFile(path.join(__dirname, 'public', 'game.html'));
+});
 
 // ── no-cache สำหรับไฟล์ .html ที่ serve ผ่าน static ──────
 app.use((req, res, next) => {
