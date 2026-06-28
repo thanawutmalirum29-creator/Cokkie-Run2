@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>🍪 คุกกี้วิ่ง! — ล็อบบี้</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#ff6b35">
+<link rel="icon" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+@keyframes rspin    { from{transform:rotate(-30deg)} to{transform:rotate(30deg)} }
+@keyframes floatY   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+@keyframes shine    { 0%{transform:translateX(-120%) skewX(-15deg)} 100%{transform:translateX(220%) skewX(-15deg)} }
+@keyframes charBounce { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-14px) rotate(1deg)} }
+@keyframes glowRing   { 0%,100%{opacity:0.5;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }
+@keyframes modalPop   { from{opacity:0;transform:scale(0.92) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; font-family:'Segoe UI','Noto Sans Thai',sans-serif; color:#ffe0b2; }
+
+#rotatePrompt { display:none; position:fixed; inset:0; background:#0d0200; z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
+#rotatePrompt .icon { font-size:72px; animation:rspin 1.6s ease-in-out infinite alternate; }
+#rotatePrompt p { font-size:22px; color:#ff8a65; text-align:center; }
+@media(orientation:portrait){ #rotatePrompt{display:flex!important;} #lobbyScreen,#fsBtn{display:none!important;} }
+
+#fsBtn { position:fixed; bottom:10px; right:10px; z-index:100; background:rgba(0,0,0,0.6); border:2px solid #ff6b35; border-radius:10px; color:#ff8a65; font-size:18px; width:40px; height:40px; cursor:pointer; display:none; align-items:center; justify-content:center; touch-action:manipulation; box-shadow:0 3px 10px rgba(0,0,0,0.4); transition:transform 0.12s,background 0.15s; }
+#fsBtn:hover{background:rgba(255,107,53,0.25);} #fsBtn:active{transform:scale(0.9);}
+#appVersion { position:fixed; left:8px; bottom:6px; z-index:6; font-size:10px; font-weight:500; color:#ff8a65; opacity:0.45; pointer-events:none; user-select:none; }
+
+#updateBanner { display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:99999; align-items:center; gap:12px; background:linear-gradient(135deg,#ff6b35,#e53935); color:#fff; font-size:14px; font-weight:700; padding:11px 16px; border-radius:50px; box-shadow:0 6px 24px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.2); white-space:nowrap; }
+#updateBanner.show{display:flex;} #updateBanner button{background:#fff;color:#e53935;border:none;border-radius:30px;padding:7px 16px;font-size:13px;font-weight:800;cursor:pointer;touch-action:manipulation;} #updateBanner button:active{transform:scale(0.95);} #updateBanner .ubClose{background:transparent;color:#fff;font-size:18px;padding:0 4px;font-weight:700;}
+#updateBlocker { display:none; position:fixed; inset:0; z-index:999999; flex-direction:column; align-items:center; justify-content:center; gap:20px; background:radial-gradient(circle at 50% 40%,#1a0500,#0d0200); }
+#updateBlocker.show{display:flex;} #updateBlocker .ub-icon{font-size:60px;animation:floatY 2.4s ease-in-out infinite;} #updateBlocker .ub-title{font-size:22px;font-weight:900;color:#ff6b35;text-shadow:0 0 20px #ff3d00;text-align:center;letter-spacing:1px;} #updateBlocker .ub-sub{font-size:13px;color:#ffb74d;text-align:center;line-height:1.6;max-width:280px;}
+#updateBlocker .ub-btn{padding:14px 40px;font-size:17px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);color:#fff;border:none;border-radius:50px;cursor:pointer;box-shadow:0 4px 24px #ff6b3566;touch-action:manipulation;position:relative;overflow:hidden;transition:transform 0.12s,box-shadow 0.12s;}
+#updateBlocker .ub-btn::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(115deg,transparent,rgba(255,255,255,0.45),transparent);animation:shine 2.6s ease-in-out infinite;}
+#updateBlocker .ub-btn:active{transform:scale(0.95);}
+
+#bgCanvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
+#lobbyScreen { position:fixed; inset:0; z-index:1; display:flex; flex-direction:column; overflow:hidden; }
+#lobbyTop { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 10px; position:relative; z-index:10; gap:8px; background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,transparent 100%); }
+#lbyPlayerCard { display:flex; align-items:center; gap:6px; background:rgba(0,0,0,0.5); border:1.5px solid rgba(255,200,50,0.45); border-radius:20px; padding:4px 10px 4px 5px; backdrop-filter:blur(6px); flex:0 0 auto; }
+#lbyLvBadge { background:linear-gradient(135deg,#c87800,#ffcc02); color:#3a1a00; font-size:10px; font-weight:900; border-radius:50%; width:26px; height:26px; display:flex; align-items:center; justify-content:center; box-shadow:0 2px 6px rgba(0,0,0,0.4); flex:0 0 26px; }
+#lbyPlayerName{font-size:11px;font-weight:800;color:#ffe0b2;white-space:nowrap;} #lbyXpBar{font-size:8px;color:#ffb74d;white-space:nowrap;}
+#lobbyTitle { flex:1; text-align:center; font-size:clamp(16px,3vw,30px); font-weight:900; letter-spacing:3px; background:linear-gradient(135deg,#fff5c0,#ffcc02,#ff9f35,#ff6b35); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; filter:drop-shadow(0 0 12px #ffcc0255); animation:floatY 3.5s ease-in-out infinite; display:inline-block; line-height:1; }
+#lobbyTopRight{display:flex;align-items:center;gap:5px;flex:0 0 auto;}
+.lby-currency{display:flex;align-items:center;gap:3px;background:rgba(0,0,0,0.5);border:1.5px solid rgba(100,180,255,0.35);border-radius:18px;padding:3px 8px 3px 5px;font-size:10px;font-weight:800;color:#e8f4ff;backdrop-filter:blur(4px);}
+.lby-currency-gem{border-color:rgba(255,200,50,0.45);color:#ffe566;} .lby-currency .icon{font-size:12px;line-height:1;}
+.lby-icon-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,0.45);border:1.5px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:background 0.15s,transform 0.12s;touch-action:manipulation;position:relative;}
+.lby-icon-btn:active{transform:scale(0.88);}
+.lby-notif-dot{position:absolute;top:1px;right:1px;width:7px;height:7px;background:#e53935;border-radius:50%;border:1px solid #0d0200;}
+#lobbyMain{flex:1 1 0;min-height:0;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;}
+#centerShowcase{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;}
+#showcaseGlow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--glow-color,rgba(180,120,255,0.3)) 0%,transparent 70%);pointer-events:none;animation:glowRing 2.5s ease-in-out infinite;}
+#showcaseCanvas{position:relative;z-index:2;display:block;filter:drop-shadow(0 0 20px var(--glow-color,rgba(180,120,255,0.6)));animation:charBounce 2s ease-in-out infinite;transition:filter 0.5s;}
+#showcaseCrowd{position:absolute;bottom:28%;left:50%;transform:translateX(-50%);width:70%;height:40%;background:radial-gradient(ellipse,rgba(180,140,255,0.12) 0%,transparent 70%);border-radius:50%;z-index:1;pointer-events:none;}
+#showcaseNamePlate{position:relative;z-index:3;margin-top:8px;display:flex;flex-direction:column;align-items:center;gap:3px;}
+#showcaseName{font-size:clamp(13px,2vw,18px);font-weight:900;color:#ffe0b2;text-shadow:0 0 14px rgba(180,120,255,0.5);letter-spacing:0.5px;}
+#showcaseDesc{font-size:9px;color:#c9a0ff;text-align:center;}
+#showcaseBonusBadge{display:flex;align-items:center;gap:5px;background:rgba(255,204,2,0.1);border:1px solid rgba(255,204,2,0.35);border-radius:18px;padding:2px 9px;font-size:8.5px;font-weight:800;color:#ffcc02;}
+#lbyBottomBar{flex:0 0 auto;display:flex;align-items:stretch;gap:4px;padding:5px 6px 8px;background:linear-gradient(0deg,rgba(0,0,0,0.72) 0%,rgba(0,0,0,0.25) 100%);border-top:1px solid rgba(255,255,255,0.07);position:relative;z-index:10;}
+.lby-nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:7px 3px;background:linear-gradient(160deg,rgba(45,22,4,0.82),rgba(22,9,0,0.72));border:1.5px solid rgba(255,145,50,0.28);border-radius:12px;cursor:pointer;touch-action:manipulation;user-select:none;transition:all 0.12s cubic-bezier(.2,.8,.2,1);box-shadow:0 2px 8px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.04);-webkit-tap-highlight-color:transparent;position:relative;overflow:hidden;}
+.lby-nav-btn::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,195,90,0.35),transparent);}
+.lby-nav-btn:active{transform:scale(0.94);box-shadow:0 1px 4px rgba(0,0,0,0.4);} .lby-nav-btn:hover{border-color:rgba(255,175,75,0.48);}
+.lby-nav-icon{font-size:20px;line-height:1;} .lby-nav-label{font-size:9px;font-weight:800;color:#ffe0b2;white-space:nowrap;text-align:center;line-height:1.2;}
+#lbyMapChip{flex:2!important;flex-direction:row!important;gap:7px!important;padding:7px 10px!important;background:linear-gradient(160deg,rgba(15,25,55,0.88),rgba(8,12,35,0.78))!important;border-color:rgba(90,150,255,0.38)!important;justify-content:flex-start!important;}
+#lbyMapChip:hover{border-color:rgba(120,180,255,0.55)!important;background:linear-gradient(160deg,rgba(20,35,70,0.9),rgba(10,18,50,0.82))!important;}
+#lbyMapThumb{border-radius:6px;flex:0 0 auto;display:block;} #lbyMapChipText{flex:1;min-width:0;text-align:left;}
+#lbyMapChipLabel{font-size:7.5px;font-weight:700;color:#6090cc;letter-spacing:1px;text-transform:uppercase;} #lbyMapChipName{font-size:11px;font-weight:800;color:#ffe0b2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} #lbyMapChipArrow{font-size:8px;color:#5580bb;flex:0 0 auto;}
+#lbyPlayBtn{flex:2.2!important;background:linear-gradient(135deg,#d49600,#ffcc02,#ffe040,#d49600)!important;border-color:rgba(255,235,90,0.55)!important;border-radius:14px!important;box-shadow:0 4px 18px rgba(255,175,0,0.45),inset 0 0 0 2px rgba(255,255,255,0.1),0 5px 0 rgba(130,75,0,0.85)!important;}
+#lbyPlayBtn::after{content:'';position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(115deg,transparent,rgba(255,255,255,0.48),transparent);animation:shine 2.2s ease-in-out infinite;}
+#lbyPlayBtn .lby-nav-icon{font-size:0!important;} #lbyPlayBtn .lby-nav-label{font-size:clamp(15px,2.4vw,21px)!important;font-weight:900;color:#3a1a00;letter-spacing:1.5px;text-shadow:0 1px 0 rgba(255,255,255,0.28);}
+#lbyPlayBtn:active{transform:scale(0.97) translateY(2px)!important;box-shadow:0 2px 7px rgba(255,175,0,0.35),inset 0 0 0 2px rgba(255,255,255,0.1),0 2px 0 rgba(130,75,0,0.85)!important;}
+#lbyRewardsBtn{flex:1.2!important;} #lbyRewardsBtn .lby-nav-icon{font-size:24px;filter:drop-shadow(0 0 7px rgba(255,195,45,0.65));}
+.lby-panel,.lby-panel-head,.char-list,.char-row,.char-row-avatar,.char-row-info,.char-row-name,.char-row-hp,.map-list,.map-row,.map-row-thumb,.map-row-info,.map-row-name,.map-row-tag,.map-row-spd,#mapShowcase,#mapShowcaseCanvas,#mapShowcaseOverlay,#mapShowcaseName,#mapShowcaseTag,#mapShowcaseSpeed,#charPanel,#mapPanel,#rightCol,#centerPanel,#startBox,#startReadout,#lbyMapName,#lbyLocBanner,#lbyHpBar,#lbyLeftBtns,#lbyRightBtns{display:none!important;}
+#startBtn{display:none!important;}
+.lby-modal-overlay{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:20px 12px;}
+.lby-modal-overlay.open{display:flex;}
+.lby-modal{width:100%;max-width:560px;height:calc(100dvh - 40px);background:linear-gradient(160deg,#100d22,#07050f);border:1.5px solid rgba(180,120,255,0.38);border-radius:20px;padding:0 0 12px;animation:modalPop 0.22s cubic-bezier(.2,.8,.2,1);box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.04) inset;display:flex;flex-direction:column;overflow:hidden;}
+.lby-modal-handle{width:36px;height:4px;background:rgba(255,255,255,0.18);border-radius:99px;margin:10px auto 2px;flex:0 0 4px;}
+.lby-modal-title{flex:0 0 auto;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#c9a0ff;text-align:center;padding:4px 16px 8px;border-bottom:1px solid rgba(180,120,255,0.15);}
+.lby-modal-close{position:absolute;top:8px;right:12px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.35);font-size:18px;line-height:1;padding:4px;touch-action:manipulation;transition:color 0.15s;}
+.lby-modal-close:hover{color:rgba(255,255,255,0.75);} .lby-modal-inner{position:relative;}
+.lby-modal-scroll{flex:1 1 0;overflow-y:auto;padding:10px 12px;scrollbar-width:thin;scrollbar-color:rgba(180,120,255,0.3) transparent;}
+.lby-modal-scroll::-webkit-scrollbar{width:4px;} .lby-modal-scroll::-webkit-scrollbar-thumb{background:rgba(180,120,255,0.3);border-radius:4px;}
+.lby-char-tab-body{flex:1 1 0;display:flex;min-height:0;overflow:hidden;}
+.lby-char-tabs{flex:0 0 64px;display:flex;flex-direction:column;gap:6px;padding:10px 6px;border-right:1px solid rgba(180,120,255,0.15);}
+.lby-char-tab-btn{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,255,255,0.04);border:1px solid rgba(180,120,255,0.18);border-radius:12px;padding:8px 2px;cursor:pointer;color:rgba(255,255,255,0.55);transition:all 0.15s;touch-action:manipulation;}
+.lby-char-tab-btn .lby-char-tab-icon{font-size:18px;line-height:1;} .lby-char-tab-btn .lby-char-tab-label{font-size:9px;font-weight:800;line-height:1.1;text-align:center;}
+.lby-char-tab-btn.active{background:rgba(180,120,255,0.22);border-color:#c9a0ff;color:#fff;box-shadow:0 0 0 1px rgba(180,120,255,0.3) inset;}
+.lby-char-tab-body .lby-modal-scroll{flex:1 1 0;}
+.lby-treasure-slots{display:flex;gap:10px;justify-content:center;padding:14px 0 6px;}
+.lby-treasure-slot{width:64px;height:64px;border-radius:14px;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(180,120,255,0.35);display:flex;align-items:center;justify-content:center;}
+.lby-treasure-plus{font-size:22px;color:rgba(180,120,255,0.5);font-weight:300;}
+.lby-tab-empty-hint{text-align:center;color:rgba(255,255,255,0.4);font-size:12px;padding:18px 10px;}
+.lby-char-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.lby-char-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:12px;cursor:pointer;transition:all 0.14s cubic-bezier(.2,.8,.2,1);touch-action:manipulation;user-select:none;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;}
+.lby-char-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.13),transparent);}
+.lby-char-card:hover{border-color:rgba(180,120,255,0.48);background:rgba(180,120,255,0.07);transform:translateY(-2px);}
+.lby-char-card.selected{border-color:#c9a0ff;background:rgba(180,120,255,0.13);box-shadow:0 0 14px rgba(180,120,255,0.22),0 0 0 2px rgba(180,120,255,0.28);}
+.lby-char-card.selected::after{content:'✓';position:absolute;top:4px;right:6px;font-size:9px;font-weight:900;color:#c9a0ff;}
+.lby-char-card canvas{display:block;} .lby-char-card-name{font-size:9px;font-weight:800;color:#ffe0b2;text-align:center;line-height:1.2;} .lby-char-card-hp{font-size:8px;color:#ff8a65;font-weight:600;} .lby-char-card-skill{font-size:7.5px;color:#c9a0ff;text-align:center;line-height:1.3;padding:0 2px;}
+.lby-map-grid{display:flex;flex-direction:column;gap:7px;}
+.lby-map-card{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:11px;cursor:pointer;transition:all 0.14s cubic-bezier(.2,.8,.2,1);touch-action:manipulation;user-select:none;position:relative;-webkit-tap-highlight-color:transparent;}
+.lby-map-card:hover{border-color:rgba(255,195,75,0.48);background:rgba(255,195,75,0.05);transform:translateX(2px);}
+.lby-map-card.selected{border-color:#ffcc02;background:rgba(255,204,2,0.09);box-shadow:0 0 12px rgba(255,204,2,0.18);}
+.lby-map-card.selected::after{content:'▶ เลือกอยู่';position:absolute;right:10px;font-size:8.5px;font-weight:800;color:#ffcc02;}
+.lby-map-card-thumb{width:68px;height:42px;flex:0 0 68px;border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.09);}
+.lby-map-card-thumb canvas{display:block;width:68px;height:42px;} .lby-map-card-info{flex:1;min-width:0;} .lby-map-card-name{font-size:11px;font-weight:800;color:#ffe0b2;} .lby-map-card-tag{font-size:8.5px;color:#ff8a65;margin-top:1px;} .lby-map-card-speed{font-size:8.5px;color:#ffb74d;margin-top:2px;}
+</style>
+</head>
+<body>
+<div id="updateBanner">
+  <span>🆕 มีอัปเดตใหม่! <span id="ubVersionText" style="opacity:0.75;font-weight:600;"></span></span>
+  <button id="updateNowBtn">โหลดใหม่</button>
+  <button class="ubClose" id="updateLaterBtn">✕</button>
+</div>
+<div id="updateBlocker">
+  <div class="ub-icon">🍪</div>
+  <div class="ub-title">มีเวอร์ชันใหม่!<br>กรุณาอัปเดตก่อนเล่น</div>
+  <div class="ub-sub">มีการอัปเดตเกม กดปุ่มด้านล่างเพื่อโหลดเวอร์ชันใหม่และเริ่มเล่นได้เลย</div>
+  <div class="ub-sub" id="ubBlockerVersionText" style="opacity:0.6;font-size:11px;"></div>
+  <button class="ub-btn" id="updateBlockerBtn">🔄 อัปเดตและเข้าเกม</button>
+</div>
+<div id="rotatePrompt"><div class="icon">📱</div><p>หมุนโทรศัพท์แนวนอน<br>เพื่อเล่นเกม! 🍪</p></div>
+<button id="fsBtn">⛶</button>
+<div id="appVersion">กำลังโหลด...</div>
+
+<div id="lobbyScreen">
+  <canvas id="bgCanvas"></canvas>
+  <div id="lobbyTop">
+    <div id="lbyPlayerCard">
+      <div id="lbyLvBadge">1</div>
+      <div><div id="lbyPlayerName">ผู้เล่น</div><div id="lbyXpBar">0 / 100</div></div>
+    </div>
+    <span id="lobbyTitle">🍪 คุกกี้วิ่ง!</span>
+    <div id="lobbyTopRight">
+      <div class="lby-currency lby-currency-gem"><span class="icon">💎</span><span id="lobbyGems">0</span></div>
+      <div class="lby-currency"><span class="icon">🪙</span><span id="lobbyCoin">0</span></div>
+      <div class="lby-icon-btn" title="ตั้งค่า">⚙️</div>
+    </div>
+  </div>
+  <div id="lobbyMain">
+    <div id="centerShowcase">
+      <div id="showcaseCrowd"></div>
+      <div id="showcaseGlow"></div>
+      <canvas id="showcaseCanvas" width="160" height="160"></canvas>
+      <div id="showcaseNamePlate">
+        <div id="showcaseName">ช็อกโกแลต</div>
+        <div id="showcaseDesc">ธรรมดา สมดุล</div>
+        <div id="showcaseBonusBadge">— ไม่มีสกิล</div>
+      </div>
+    </div>
+    <!-- legacy hidden panels for JS compat -->
+    <div class="lby-panel" id="charPanel" style="display:none!important"><div class="lby-panel-head">🧁 ตัวละคร</div><div class="char-list" id="charGrid"></div></div>
+    <div class="lby-panel" id="centerPanel" style="display:none!important"><div id="charShowcase"></div><div id="mapShowcase"><canvas id="mapShowcaseCanvas" height="70"></canvas><div id="mapShowcaseOverlay"><span id="mapShowcaseName">เบเกอรี่</span><span id="mapShowcaseTag">แมพเริ่มต้น</span><span id="mapShowcaseSpeed">💨 ×5</span></div></div></div>
+    <div id="rightCol" style="display:none!important"><div class="lby-panel" id="mapPanel"><div class="lby-panel-head">🗺️ แมพ</div><div class="map-list" id="mapGrid"></div></div><div id="startBox"><div id="startReadout"><span class="sr-char" id="srChar">ช็อกโกแลต</span>&nbsp;บน&nbsp;<span class="sr-map" id="srMap">เบเกอรี่</span></div><button id="startBtn" style="display:none!important">▶ เริ่มวิ่ง!</button></div></div>
+  </div>
+  <div id="lbyBottomBar">
+    <button class="lby-nav-btn" id="lbyCookiesBtn"><span class="lby-nav-icon">🍪</span><span class="lby-nav-label">Cookies</span></button>
+    <button class="lby-nav-btn"><span class="lby-nav-icon">👗</span><span class="lby-nav-label">ชุด</span></button>
+    <button class="lby-nav-btn"><span class="lby-nav-icon">🎰</span><span class="lby-nav-label">Gacha</span></button>
+    <button class="lby-nav-btn" id="lbyRewardsBtn"><span class="lby-nav-icon">🧰</span><span class="lby-nav-label">Rewards</span></button>
+    <div class="lby-nav-btn" id="lbyMapChip" title="เปลี่ยนแมพ">
+      <canvas id="lbyMapThumb" width="52" height="30"></canvas>
+      <div id="lbyMapChipText"><div id="lbyMapChipLabel">แมพ</div><div id="lbyMapChipName">เบเกอรี่</div></div>
+      <span id="lbyMapChipArrow">▼</span>
+    </div>
+    <button class="lby-nav-btn" id="lbyPlayBtn"><span class="lby-nav-icon"></span><span class="lby-nav-label">PLAY!</span></button>
+  </div>
+  <canvas id="lbyCharThumb" width="32" height="32" style="display:none;"></canvas>
+</div>
+
+<!-- Modal: เลือกตัวละคร -->
+<div class="lby-modal-overlay" id="modalChar">
+  <div class="lby-modal lby-modal-inner">
+    <button class="lby-modal-close" onclick="closeModal('modalChar')">✕</button>
+    <div class="lby-modal-handle"></div>
+    <div class="lby-modal-title">🍪 เลือกตัวละคร</div>
+    <div class="lby-char-tab-body">
+      <div class="lby-char-tabs">
+        <button class="lby-char-tab-btn active" id="charTabBtn-char" onclick="switchCharTab('char')"><span class="lby-char-tab-icon">🍪</span><span class="lby-char-tab-label">ตัวละคร</span></button>
+        <button class="lby-char-tab-btn" id="charTabBtn-pet" onclick="switchCharTab('pet')"><span class="lby-char-tab-icon">🐾</span><span class="lby-char-tab-label">สัตว์เลี้ยง</span></button>
+        <button class="lby-char-tab-btn" id="charTabBtn-treasure" onclick="switchCharTab('treasure')"><span class="lby-char-tab-icon">💎</span><span class="lby-char-tab-label">สมบัติ</span></button>
+      </div>
+      <div class="lby-modal-scroll" id="charTabPanel-char"><div class="lby-char-grid" id="pickerCharGrid"></div></div>
+      <div class="lby-modal-scroll" id="charTabPanel-pet" style="display:none"><div class="lby-tab-empty-hint">🐾 ระบบสัตว์เลี้ยง — เร็วๆนี้</div></div>
+      <div class="lby-modal-scroll" id="charTabPanel-treasure" style="display:none"><div class="lby-treasure-slots"><div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div><div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div><div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div></div><div class="lby-tab-empty-hint">💎 ใส่สมบัติได้สูงสุด 3 ชิ้น — เร็วๆนี้</div></div>
+    </div>
+  </div>
+</div>
+<!-- Modal: เลือกแมพ -->
+<div class="lby-modal-overlay" id="modalMap">
+  <div class="lby-modal lby-modal-inner">
+    <button class="lby-modal-close" onclick="closeModal('modalMap')">✕</button>
+    <div class="lby-modal-handle"></div>
+    <div class="lby-modal-title">🗺️ เลือกแมพ</div>
+    <div class="lby-modal-scroll"><div class="lby-map-grid" id="pickerMapGrid"></div></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  function isPortrait(){ return screen.orientation?screen.orientation.type.startsWith('portrait'):window.innerHeight>window.innerWidth; }
+  function load(){
+    ['gameData.js','fullscreen.js','map.js'].reduce(function(p,src){
+      return p.then(function(){
+        return new Promise(function(res){
+          var s=document.createElement('script'); s.src=src; s.onload=res; document.body.appendChild(s);
+        });
+      });
+    }, Promise.resolve()).then(function(){
+      var raw=document.getElementById('_lobbyScript').textContent;
+      var s=document.createElement('script'); s.textContent=raw; document.body.appendChild(s);
+    });
+  }
+  if(!isPortrait()){load();}
+  else{
+    function oc(){ setTimeout(function(){ if(!isPortrait()){window.removeEventListener('orientationchange',oc);if(screen.orientation)screen.orientation.removeEventListener('change',oc);load();} },300); }
+    window.addEventListener('orientationchange',oc);
+    if(screen.orientation)screen.orientation.addEventListener('change',oc);
+  }
+})();
+</script>
+
+<script id="_lobbyScript" type="text/plain">
+let SKILLS = typeof SKILLS_FALLBACK!=='undefined' ? SKILLS_FALLBACK : {};
+const bgC=document.getElementById('bgCanvas'), bgCtx=bgC.getContext('2d');
+let selChar='choco', selMap='bakery';
+
+// ── restore last selection ──
+(function(){ const lc=localStorage.getItem('cr_lastChar'),lm=localStorage.getItem('cr_lastMap'); if(lc&&CHARS.find(c=>c.id===lc))selChar=lc; if(lm&&MAPS.find(m=>m.id===lm))selMap=lm; })();
+
+function getPlayerName(){
+  let name=localStorage.getItem('cr_playerName');
+  if(!name){name=(prompt('ตั้งชื่อผู้เล่นสำหรับ leaderboard:','SonicGamer501')||'SonicGamer501').trim().slice(0,24)||'SonicGamer501';localStorage.setItem('cr_playerName',name);}
+  const el=document.getElementById('lbyPlayerName'); if(el) el.textContent=name; return name;
+}
+
+function goToGame(charId,mapId){
+  localStorage.setItem('cr_lastChar',charId); localStorage.setItem('cr_lastMap',mapId);
+  goFullscreenLandscape(function(){ window.location.href='game.html?char='+encodeURIComponent(charId)+'&map='+encodeURIComponent(mapId); });
+}
+
+function resizeBg(){ bgC.width=innerWidth; bgC.height=innerHeight; }
+window.addEventListener('resize',resizeBg);
+document.addEventListener('fullscreenchange',function(){setTimeout(resizeBg,300);});
+document.addEventListener('webkitfullscreenchange',function(){setTimeout(resizeBg,300);});
+function resize(){}
+
+// ── BG animation ──
+const stars=Array.from({length:120},()=>({x:Math.random(),y:Math.random()*0.65,r:Math.random()*1.5+0.4,phase:Math.random()*Math.PI*2,speed:0.015+Math.random()*0.025}));
+const fireflies=Array.from({length:30},()=>({x:Math.random(),y:0.4+Math.random()*0.5,r:1+Math.random()*2,vx:(Math.random()-0.5)*0.0006,vy:-0.0008-Math.random()*0.001,hue:60+Math.random()*80,life:Math.random(),phase:Math.random()*Math.PI*2}));
+const trees=[{x:0.02,h:0.38,w:0.05,type:'pine'},{x:0.08,h:0.28,w:0.035,type:'pine'},{x:0.84,h:0.32,w:0.04,type:'pine'},{x:0.90,h:0.44,w:0.06,type:'pine'},{x:0.96,h:0.26,w:0.03,type:'pine'},{x:0.14,h:0.18,w:0.05,type:'round'},{x:0.78,h:0.16,w:0.045,type:'round'}];
+const tents=[{x:0.15,y:0.82,w:0.07,h:0.08,c:'#28403a'},{x:0.22,y:0.84,w:0.05,h:0.06,c:'#3a3020'},{x:0.72,y:0.83,w:0.06,h:0.07,c:'#2a3050'},{x:0.80,y:0.84,w:0.05,h:0.06,c:'#3a2830'},{x:0.64,y:0.85,w:0.04,h:0.05,c:'#304028'}];
+const groundLights=Array.from({length:18},()=>({x:Math.random(),y:0.78+Math.random()*0.12,r:2+Math.random()*3,hue:Math.random()<0.5?120+Math.random()*60:40+Math.random()*30,phase:Math.random()*Math.PI*2}));
+let bgT=0;
+function animBg(){
+  bgT+=0.016; const W=bgC.width,H=bgC.height; bgCtx.clearRect(0,0,W,H);
+  const sg=bgCtx.createLinearGradient(0,0,0,H); sg.addColorStop(0,'#050518');sg.addColorStop(0.3,'#0a0b2e');sg.addColorStop(0.65,'#0d1535');sg.addColorStop(0.78,'#121d28');sg.addColorStop(1,'#0f1c10'); bgCtx.fillStyle=sg; bgCtx.fillRect(0,0,W,H);
+  stars.forEach(s=>{const a=0.35+0.65*(0.5+0.5*Math.sin(bgT*s.speed+s.phase));bgCtx.beginPath();bgCtx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);bgCtx.fillStyle='rgba(220,230,255,'+a+')';bgCtx.fill();});
+  bgCtx.fillStyle='#0a1520';bgCtx.beginPath();bgCtx.moveTo(0,H*0.62);bgCtx.bezierCurveTo(W*0.15,H*0.48,W*0.35,H*0.55,W*0.5,H*0.52);bgCtx.bezierCurveTo(W*0.65,H*0.49,W*0.82,H*0.57,W,H*0.60);bgCtx.lineTo(W,H);bgCtx.lineTo(0,H);bgCtx.closePath();bgCtx.fill();
+  bgCtx.fillStyle='#081018';bgCtx.beginPath();bgCtx.moveTo(0,H*0.70);bgCtx.bezierCurveTo(W*0.2,H*0.60,W*0.4,H*0.66,W*0.55,H*0.63);bgCtx.bezierCurveTo(W*0.7,H*0.60,W*0.85,H*0.68,W,H*0.65);bgCtx.lineTo(W,H);bgCtx.lineTo(0,H);bgCtx.closePath();bgCtx.fill();
+  const gg=bgCtx.createLinearGradient(0,H*0.78,0,H);gg.addColorStop(0,'#0f1f12');gg.addColorStop(0.4,'#0a1a0c');gg.addColorStop(1,'#050f07');bgCtx.fillStyle=gg;bgCtx.fillRect(0,H*0.78,W,H*0.22);
+  tents.forEach(t=>{bgCtx.fillStyle=t.c;const tx=t.x*W,ty=t.y*H,tw=t.w*W,th=t.h*H;bgCtx.beginPath();bgCtx.moveTo(tx,ty+th);bgCtx.lineTo(tx+tw/2,ty);bgCtx.lineTo(tx+tw,ty+th);bgCtx.closePath();bgCtx.fill();bgCtx.fillStyle='rgba(255,220,100,0.15)';bgCtx.beginPath();bgCtx.arc(tx+tw/2,ty+th*0.65,tw*0.09,0,Math.PI*2);bgCtx.fill();});
+  trees.forEach(tr=>{const tx=tr.x*W,ty=(1-tr.h)*H,tw=tr.w*W;bgCtx.fillStyle='#060e08';if(tr.type==='pine'){bgCtx.beginPath();bgCtx.moveTo(tx+tw/2,ty);bgCtx.lineTo(tx+tw,ty+tr.h*H*0.7);bgCtx.lineTo(tx+tw*0.65,ty+tr.h*H*0.55);bgCtx.lineTo(tx+tw*0.85,ty+tr.h*H);bgCtx.lineTo(tx+tw*0.15,ty+tr.h*H);bgCtx.lineTo(tx+tw*0.35,ty+tr.h*H*0.55);bgCtx.lineTo(tx,ty+tr.h*H*0.7);bgCtx.closePath();bgCtx.fill();}else{bgCtx.beginPath();bgCtx.arc(tx+tw/2,ty+tw*0.5,tw*0.55,0,Math.PI*2);bgCtx.fill();bgCtx.fillRect(tx+tw*0.42,ty+tw,tw*0.16,tr.h*H*0.3);}});
+  groundLights.forEach(gl=>{const gx=gl.x*W,gy=gl.y*H,a=0.4+0.6*(0.5+0.5*Math.sin(bgT*1.5+gl.phase)),rr=gl.r*(0.8+0.4*(0.5+0.5*Math.sin(bgT*2+gl.phase)));const grd=bgCtx.createRadialGradient(gx,gy,0,gx,gy,rr*3);grd.addColorStop(0,'hsla('+gl.hue+',80%,70%,'+a+')');grd.addColorStop(1,'hsla('+gl.hue+',80%,60%,0)');bgCtx.beginPath();bgCtx.arc(gx,gy,rr*3,0,Math.PI*2);bgCtx.fillStyle=grd;bgCtx.fill();bgCtx.beginPath();bgCtx.arc(gx,gy,rr*0.6,0,Math.PI*2);bgCtx.fillStyle='hsla('+gl.hue+',100%,90%,'+(a*0.9)+')';bgCtx.fill();});
+  fireflies.forEach(f=>{f.x+=f.vx+Math.sin(bgT+f.phase)*0.0003;f.y+=f.vy;f.life+=0.008;if(f.life>1||f.y<0.3){f.x=Math.random();f.y=0.85+Math.random()*0.1;f.life=0;}const fa=Math.sin(f.life*Math.PI)*0.8;bgCtx.beginPath();bgCtx.arc(f.x*W,f.y*H,f.r,0,Math.PI*2);bgCtx.fillStyle='hsla('+f.hue+',100%,72%,'+fa+')';bgCtx.fill();});
+  const spG=bgCtx.createRadialGradient(W/2,H*0.72,0,W/2,H*0.72,W*0.18);spG.addColorStop(0,'rgba(160,100,255,0.12)');spG.addColorStop(1,'rgba(0,0,0,0)');bgCtx.fillStyle=spG;bgCtx.fillRect(0,H*0.5,W,H*0.5);
+  requestAnimationFrame(animBg);
+}
+
+// ── showcase / previews ──
+const showcaseCanvas=document.getElementById('showcaseCanvas'), showcaseGlow=document.getElementById('showcaseGlow');
+function drawCharShowcase(ch){const cv=showcaseCanvas,c=cv.getContext('2d'),S=cv.width;c.clearRect(0,0,S,S);drawGingerbread(c,S/2,S/2+8,2.7,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});}
+function drawMapShowcase(mp){const cv=document.getElementById('mapShowcaseCanvas');if(!cv)return;const c=cv.getContext('2d');cv.width=cv.offsetWidth||180;const W=cv.width,H=70;cv.height=H;const sg=c.createLinearGradient(0,0,0,H);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);c.fillStyle=sg;c.fillRect(0,0,W,H);drawMapMotif(c,mp.id,W,H,mp.accent);const gg=c.createLinearGradient(0,H*0.62,0,H);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);c.fillStyle=gg;c.fillRect(0,H*0.62,W,H*0.38);c.fillStyle=mp.accent+'99';c.fillRect(0,H*0.62,W,2);}
+function updateShowcase(){const ch=CHARS.find(c=>c.id===selChar)||CHARS[0],mp=MAPS.find(m=>m.id===selMap)||MAPS[0];drawCharShowcase(ch);const gc=ch.bodyColor[1]+'66';showcaseGlow.style.setProperty('--glow-color',gc);showcaseCanvas.style.setProperty('--glow-color',gc);document.getElementById('showcaseName').textContent=ch.name;document.getElementById('showcaseDesc').textContent=ch.desc;const bl={yellowJelly:'🐻 ผลิตเยลลี่หมี',dash:'⚡ แดช',jellyBonus:'★ เยลลี่ +5',healPotion:'💧 ยาฮีล',revive:'💫 ฟื้นคืนชีพ'};document.getElementById('showcaseBonusBadge').textContent=ch.bonus?bl[ch.bonus]||ch.bonus:'— ไม่มีสกิล';drawMapShowcase(mp);if(document.getElementById('srChar'))document.getElementById('srChar').textContent=ch.name;if(document.getElementById('srMap'))document.getElementById('srMap').textContent=mp.name;}
+function updateReadout(){const ch=CHARS.find(c=>c.id===selChar)||CHARS[0],mp=MAPS.find(m=>m.id===selMap)||MAPS[0];const ct=document.getElementById('lbyCharThumb');if(ct){const cx=ct.getContext('2d');cx.clearRect(0,0,32,32);drawGingerbread(cx,16,18,0.44,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});}const ne=document.getElementById('lbyMapChipName');if(ne)ne.textContent=mp.name;const mt=document.getElementById('lbyMapThumb');if(mt){const mc=mt.getContext('2d');mt.width=52;mt.height=30;const sg=mc.createLinearGradient(0,0,0,30);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);mc.fillStyle=sg;mc.fillRect(0,0,52,30);drawMapMotif(mc,mp.id,52,30,mp.accent);const gg=mc.createLinearGradient(0,20,0,30);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);mc.fillStyle=gg;mc.fillRect(0,20,52,10);}}
+
+// ── build char/map lists ──
+function buildCharGrid(){const cg=document.getElementById('charGrid');CHARS.forEach(ch=>{const row=document.createElement('div');row.className='char-row'+(ch.id===selChar?' selected':'');row.dataset.id=ch.id;const av=document.createElement('div');av.className='char-row-avatar';const cv=document.createElement('canvas');cv.width=34;cv.height=34;const c=cv.getContext('2d');c.clearRect(0,0,34,34);drawGingerbread(c,17,19,0.44,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});av.appendChild(cv);const info=document.createElement('div');info.className='char-row-info';const nm=document.createElement('div');nm.className='char-row-name';nm.textContent=ch.name;const hp=document.createElement('div');hp.className='char-row-hp';hp.textContent='❤ '+ch.maxHp;info.appendChild(nm);info.appendChild(hp);row.appendChild(av);row.appendChild(info);row.addEventListener('click',()=>selectChar(ch.id));cg.appendChild(row);});}
+function buildMapGrid(){const mg=document.getElementById('mapGrid');MAPS.forEach(mp=>{const row=document.createElement('div');row.className='map-row'+(mp.id===selMap?' selected':'');row.dataset.id=mp.id;const th=document.createElement('div');th.className='map-row-thumb';const cv=document.createElement('canvas');cv.width=120;cv.height=38;const c=cv.getContext('2d');const sg=c.createLinearGradient(0,0,0,38);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);c.fillStyle=sg;c.fillRect(0,0,120,38);drawMapMotif(c,mp.id,120,38,mp.accent);const gg=c.createLinearGradient(0,24,0,38);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);c.fillStyle=gg;c.fillRect(0,24,120,14);c.fillStyle=mp.accent+'88';c.fillRect(0,24,120,2);th.appendChild(cv);const info=document.createElement('div');info.className='map-row-info';const nm=document.createElement('div');nm.className='map-row-name';nm.textContent=mp.name;const tag=document.createElement('div');tag.className='map-row-tag';tag.textContent=mp.tag||'';const spd=document.createElement('div');spd.className='map-row-spd';spd.textContent='💨 ×'+(mp.speed||5);info.appendChild(nm);info.appendChild(tag);info.appendChild(spd);row.appendChild(th);row.appendChild(info);row.addEventListener('click',()=>selectMap(mp.id));mg.appendChild(row);});}
+buildCharGrid(); buildMapGrid();
+
+function selectChar(id){selChar=id;document.querySelectorAll('.char-row,.lby-char-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));updateShowcase();updateReadout();}
+function selectMap(id){selMap=id;document.querySelectorAll('.map-row,.lby-map-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));updateShowcase();updateReadout();}
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+function switchCharTab(tab){['char','pet','treasure'].forEach(t=>{document.getElementById('charTabBtn-'+t).classList.toggle('active',t===tab);document.getElementById('charTabPanel-'+t).style.display=(t===tab)?'':'none';});}
+['modalChar','modalMap'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
+
+// ── picker char cards ──
+const pcg=document.getElementById('pickerCharGrid');
+CHARS.forEach(ch=>{const card=document.createElement('div');card.className='lby-char-card'+(ch.id===selChar?' selected':'');card.dataset.id=ch.id;const cv=document.createElement('canvas');cv.width=60;cv.height=60;const c=cv.getContext('2d');drawGingerbread(c,30,34,0.78,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});const badges={yellowJelly:'🐻',dash:'⚡',jellyBonus:'★',healPotion:'💧',revive:'💫'};if(ch.bonus&&badges[ch.bonus]){c.font='12px serif';c.fillStyle='rgba(0,0,0,0.55)';c.beginPath();c.arc(52,10,10,0,Math.PI*2);c.fill();c.fillStyle='#ffcc02';c.textAlign='center';c.textBaseline='middle';c.fillText(badges[ch.bonus],52,10);}const nm=document.createElement('div');nm.className='lby-char-card-name';nm.textContent=ch.name;const hpEl=document.createElement('div');hpEl.className='lby-char-card-hp';hpEl.textContent='❤ '+ch.maxHp;const sk=document.createElement('div');sk.className='lby-char-card-skill';sk.textContent=ch.bonus?({yellowJelly:'🐻 ผลิตเยลลี่หมี',dash:'⚡ แดช',jellyBonus:'★ เยลลี่ +pt',healPotion:'💧 ยาฮีล',revive:'💫 ฟื้นคืนชีพ'}[ch.bonus]||ch.bonus):'— ปกติ';card.appendChild(cv);card.appendChild(nm);card.appendChild(hpEl);card.appendChild(sk);card.addEventListener('click',()=>{selChar=ch.id;document.querySelectorAll('.lby-char-card,.char-row').forEach(c=>c.classList.toggle('selected',c.dataset.id===ch.id));updateShowcase();updateReadout();setTimeout(()=>closeModal('modalChar'),160);});pcg.appendChild(card);});
+
+// ── picker map cards ──
+const pmg=document.getElementById('pickerMapGrid');
+MAPS.forEach(mp=>{const card=document.createElement('div');card.className='lby-map-card'+(mp.id===selMap?' selected':'');card.dataset.id=mp.id;const tw=document.createElement('div');tw.className='lby-map-card-thumb';const cv=document.createElement('canvas');cv.width=72;cv.height=44;const c=cv.getContext('2d');const sg=c.createLinearGradient(0,0,0,44);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);c.fillStyle=sg;c.fillRect(0,0,72,44);drawMapMotif(c,mp.id,72,44,mp.accent);const gg=c.createLinearGradient(0,28,0,44);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);c.fillStyle=gg;c.fillRect(0,28,72,16);tw.appendChild(cv);const info=document.createElement('div');info.className='lby-map-card-info';const nm=document.createElement('div');nm.className='lby-map-card-name';nm.textContent=mp.name;const tag=document.createElement('div');tag.className='lby-map-card-tag';tag.textContent=mp.tag||'';const spd=document.createElement('div');spd.className='lby-map-card-speed';spd.textContent='💨 ×'+(mp.speed||5);info.appendChild(nm);info.appendChild(tag);info.appendChild(spd);card.appendChild(tw);card.appendChild(info);card.addEventListener('click',()=>{selMap=mp.id;document.querySelectorAll('.lby-map-card,.map-row').forEach(c=>c.classList.toggle('selected',c.dataset.id===mp.id));updateShowcase();updateReadout();setTimeout(()=>closeModal('modalMap'),160);});pmg.appendChild(card);});
+
+document.getElementById('lbyCookiesBtn').addEventListener('click',()=>openModal('modalChar'));
+document.getElementById('lbyMapChip').addEventListener('click',()=>openModal('modalMap'));
+document.getElementById('startBtn').addEventListener('click',()=>goToGame(selChar,selMap));
+document.getElementById('lbyPlayBtn').addEventListener('click',()=>goToGame(selChar,selMap));
+document.getElementById('fsBtn').addEventListener('click',()=>goFullscreenLandscape(function(){resizeBg();}));
+
+getPlayerName(); updateShowcase(); updateReadout(); resizeBg(); animBg(); updateFsBtn();
+window.addEventListener('orientationchange',()=>setTimeout(()=>goFullscreenLandscape(),300));
+if(screen.orientation)screen.orientation.addEventListener('change',()=>setTimeout(()=>goFullscreenLandscape(),300));
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  let swReg=null,loadedVersion=null;
+  function checkForUpdate(){if(swReg)swReg.update().catch(()=>{});}
+  function applyVersionTransitionText(){fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{const txt='('+(loadedVersion||'?')+' → '+(d.version||'?')+')';const b1=document.getElementById('ubVersionText'),b2=document.getElementById('ubBlockerVersionText');if(b1)b1.textContent=txt;if(b2)b2.textContent=txt;}).catch(()=>{});}
+  function showUpdateBlocker(reg){const bl=document.getElementById('updateBlocker');if(!bl||bl.classList.contains('show'))return;applyVersionTransitionText();bl.classList.add('show');document.getElementById('updateBlockerBtn').onclick=()=>{if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};}
+  function showUpdateBanner(reg){const bn=document.getElementById('updateBanner');if(bn.classList.contains('show'))return;applyVersionTransitionText();bn.classList.add('show');document.getElementById('updateNowBtn').onclick=()=>{bn.classList.remove('show');if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};document.getElementById('updateLaterBtn').onclick=()=>bn.classList.remove('show');}
+  function handleUpdate(reg){showUpdateBlocker(reg);}
+  function handleReg(reg){swReg=reg;function onW(w){w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)handleUpdate(reg);});}if(reg.waiting){handleUpdate(reg);return;}if(reg.installing)onW(reg.installing);reg.addEventListener('updatefound',()=>{if(reg.installing)onW(reg.installing);});}
+  function updateVersionDisplay(){fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d.version&&!loadedVersion)loadedVersion=d.version;const el=document.getElementById('appVersion');if(el)el.textContent=d.version?'cookie-run-'+d.version:'cookie-run-?';}).catch(()=>{caches.keys().then(keys=>{const c=keys.find(k=>k.startsWith('cookie-run-'));if(c&&!loadedVersion)loadedVersion=c.replace(/^cookie-run-/,'');const el=document.getElementById('appVersion');if(el)el.textContent=c||'cookie-run-?';}).catch(()=>{});});}
+  window.addEventListener('load',()=>{navigator.serviceWorker.register('/service-worker.js').then(reg=>{handleReg(reg);updateVersionDisplay();}).catch(e=>console.warn('SW register failed',e));updateVersionDisplay();let refreshed=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshed)return;refreshed=true;window.location.reload();});setInterval(checkForUpdate,5*60*1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate();});});
+}
+</script>
+</body>
+</html>
