@@ -16,25 +16,21 @@
 @keyframes charBounce { 0%,100%{transform:translateY(0) rotate(-1deg)} 50%{transform:translateY(-14px) rotate(1deg)} }
 @keyframes glowRing   { 0%,100%{opacity:0.5;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }
 @keyframes modalPop   { from{opacity:0;transform:scale(0.92) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
+@keyframes treasurePop{ 0%{transform:scale(0.85);opacity:0} 100%{transform:scale(1);opacity:1} }
 html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; font-family:'Segoe UI','Noto Sans Thai',sans-serif; color:#ffe0b2; }
-
 #rotatePrompt { display:none; position:fixed; inset:0; background:#0d0200; z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
 #rotatePrompt .icon { font-size:72px; animation:rspin 1.6s ease-in-out infinite alternate; }
 #rotatePrompt p { font-size:22px; color:#ff8a65; text-align:center; }
 @media(orientation:portrait){ #rotatePrompt{display:flex!important;} #lobbyScreen,#fsBtn{display:none!important;} }
-
 #fsBtn { position:fixed; bottom:10px; right:10px; z-index:100; background:rgba(0,0,0,0.6); border:2px solid #ff6b35; border-radius:10px; color:#ff8a65; font-size:18px; width:40px; height:40px; cursor:pointer; display:none; align-items:center; justify-content:center; touch-action:manipulation; box-shadow:0 3px 10px rgba(0,0,0,0.4); transition:transform 0.12s,background 0.15s; }
 #fsBtn:hover{background:rgba(255,107,53,0.25);} #fsBtn:active{transform:scale(0.9);}
 #appVersion { position:fixed; left:8px; bottom:6px; z-index:6; font-size:10px; font-weight:500; color:#ff8a65; opacity:0.45; pointer-events:none; user-select:none; }
-
 #updateBanner { display:none; position:fixed; left:50%; bottom:18px; transform:translateX(-50%); z-index:99999; align-items:center; gap:12px; background:linear-gradient(135deg,#ff6b35,#e53935); color:#fff; font-size:14px; font-weight:700; padding:11px 16px; border-radius:50px; box-shadow:0 6px 24px rgba(0,0,0,0.5),inset 0 1px 0 rgba(255,255,255,0.2); white-space:nowrap; }
 #updateBanner.show{display:flex;} #updateBanner button{background:#fff;color:#e53935;border:none;border-radius:30px;padding:7px 16px;font-size:13px;font-weight:800;cursor:pointer;touch-action:manipulation;} #updateBanner button:active{transform:scale(0.95);} #updateBanner .ubClose{background:transparent;color:#fff;font-size:18px;padding:0 4px;font-weight:700;}
 #updateBlocker { display:none; position:fixed; inset:0; z-index:999999; flex-direction:column; align-items:center; justify-content:center; gap:20px; background:radial-gradient(circle at 50% 40%,#1a0500,#0d0200); }
 #updateBlocker.show{display:flex;} #updateBlocker .ub-icon{font-size:60px;animation:floatY 2.4s ease-in-out infinite;} #updateBlocker .ub-title{font-size:22px;font-weight:900;color:#ff6b35;text-shadow:0 0 20px #ff3d00;text-align:center;letter-spacing:1px;} #updateBlocker .ub-sub{font-size:13px;color:#ffb74d;text-align:center;line-height:1.6;max-width:280px;}
 #updateBlocker .ub-btn{padding:14px 40px;font-size:17px;font-weight:900;letter-spacing:1px;background:linear-gradient(135deg,#ffcc02,#ff6b35,#e53935);color:#fff;border:none;border-radius:50px;cursor:pointer;box-shadow:0 4px 24px #ff6b3566;touch-action:manipulation;position:relative;overflow:hidden;transition:transform 0.12s,box-shadow 0.12s;}
-#updateBlocker .ub-btn::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(115deg,transparent,rgba(255,255,255,0.45),transparent);animation:shine 2.6s ease-in-out infinite;}
-#updateBlocker .ub-btn:active{transform:scale(0.95);}
-
+#updateBlocker .ub-btn::before{content:'';position:absolute;top:0;bottom:0;width:40%;background:linear-gradient(115deg,transparent,rgba(255,255,255,0.45),transparent);animation:shine 2.6s ease-in-out infinite;} #updateBlocker .ub-btn:active{transform:scale(0.95);}
 #bgCanvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:0; }
 #lobbyScreen { position:fixed; inset:0; z-index:1; display:flex; flex-direction:column; overflow:hidden; }
 #lobbyTop { flex:0 0 auto; display:flex; align-items:center; justify-content:space-between; padding:6px 10px; position:relative; z-index:10; gap:8px; background:linear-gradient(180deg,rgba(0,0,0,0.55) 0%,transparent 100%); }
@@ -47,7 +43,6 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 .lby-currency-gem{border-color:rgba(255,200,50,0.45);color:#ffe566;} .lby-currency .icon{font-size:12px;line-height:1;}
 .lby-icon-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,0.45);border:1.5px solid rgba(255,255,255,0.18);display:flex;align-items:center;justify-content:center;font-size:13px;cursor:pointer;transition:background 0.15s,transform 0.12s;touch-action:manipulation;position:relative;}
 .lby-icon-btn:active{transform:scale(0.88);}
-.lby-notif-dot{position:absolute;top:1px;right:1px;width:7px;height:7px;background:#e53935;border-radius:50%;border:1px solid #0d0200;}
 #lobbyMain{flex:1 1 0;min-height:0;position:relative;z-index:2;display:flex;align-items:center;justify-content:center;}
 #centerShowcase{display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;}
 #showcaseGlow{position:absolute;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,var(--glow-color,rgba(180,120,255,0.3)) 0%,transparent 70%);pointer-events:none;animation:glowRing 2.5s ease-in-out infinite;}
@@ -73,6 +68,7 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 #lbyRewardsBtn{flex:1.2!important;} #lbyRewardsBtn .lby-nav-icon{font-size:24px;filter:drop-shadow(0 0 7px rgba(255,195,45,0.65));}
 .lby-panel,.lby-panel-head,.char-list,.char-row,.char-row-avatar,.char-row-info,.char-row-name,.char-row-hp,.map-list,.map-row,.map-row-thumb,.map-row-info,.map-row-name,.map-row-tag,.map-row-spd,#mapShowcase,#mapShowcaseCanvas,#mapShowcaseOverlay,#mapShowcaseName,#mapShowcaseTag,#mapShowcaseSpeed,#charPanel,#mapPanel,#rightCol,#centerPanel,#startBox,#startReadout,#lbyMapName,#lbyLocBanner,#lbyHpBar,#lbyLeftBtns,#lbyRightBtns{display:none!important;}
 #startBtn{display:none!important;}
+/* ══ MODALS ══ */
 .lby-modal-overlay{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:20px 12px;}
 .lby-modal-overlay.open{display:flex;}
 .lby-modal{width:100%;max-width:560px;height:calc(100dvh - 40px);background:linear-gradient(160deg,#100d22,#07050f);border:1.5px solid rgba(180,120,255,0.38);border-radius:20px;padding:0 0 12px;animation:modalPop 0.22s cubic-bezier(.2,.8,.2,1);box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.04) inset;display:flex;flex-direction:column;overflow:hidden;}
@@ -88,10 +84,7 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 .lby-char-tab-btn .lby-char-tab-icon{font-size:18px;line-height:1;} .lby-char-tab-btn .lby-char-tab-label{font-size:9px;font-weight:800;line-height:1.1;text-align:center;}
 .lby-char-tab-btn.active{background:rgba(180,120,255,0.22);border-color:#c9a0ff;color:#fff;box-shadow:0 0 0 1px rgba(180,120,255,0.3) inset;}
 .lby-char-tab-body .lby-modal-scroll{flex:1 1 0;}
-.lby-treasure-slots{display:flex;gap:10px;justify-content:center;padding:14px 0 6px;}
-.lby-treasure-slot{width:64px;height:64px;border-radius:14px;background:rgba(255,255,255,0.04);border:1.5px dashed rgba(180,120,255,0.35);display:flex;align-items:center;justify-content:center;}
-.lby-treasure-plus{font-size:22px;color:rgba(180,120,255,0.5);font-weight:300;}
-.lby-tab-empty-hint{text-align:center;color:rgba(255,255,255,0.4);font-size:12px;padding:18px 10px;}
+/* ── CHAR GRID ── */
 .lby-char-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
 .lby-char-card{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:12px;cursor:pointer;transition:all 0.14s cubic-bezier(.2,.8,.2,1);touch-action:manipulation;user-select:none;position:relative;overflow:hidden;-webkit-tap-highlight-color:transparent;}
 .lby-char-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.13),transparent);}
@@ -99,6 +92,7 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 .lby-char-card.selected{border-color:#c9a0ff;background:rgba(180,120,255,0.13);box-shadow:0 0 14px rgba(180,120,255,0.22),0 0 0 2px rgba(180,120,255,0.28);}
 .lby-char-card.selected::after{content:'✓';position:absolute;top:4px;right:6px;font-size:9px;font-weight:900;color:#c9a0ff;}
 .lby-char-card canvas{display:block;} .lby-char-card-name{font-size:9px;font-weight:800;color:#ffe0b2;text-align:center;line-height:1.2;} .lby-char-card-hp{font-size:8px;color:#ff8a65;font-weight:600;} .lby-char-card-skill{font-size:7.5px;color:#c9a0ff;text-align:center;line-height:1.3;padding:0 2px;}
+/* ── MAP GRID ── */
 .lby-map-grid{display:flex;flex-direction:column;gap:7px;}
 .lby-map-card{display:flex;align-items:center;gap:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1.5px solid rgba(255,255,255,0.07);border-radius:11px;cursor:pointer;transition:all 0.14s cubic-bezier(.2,.8,.2,1);touch-action:manipulation;user-select:none;position:relative;-webkit-tap-highlight-color:transparent;}
 .lby-map-card:hover{border-color:rgba(255,195,75,0.48);background:rgba(255,195,75,0.05);transform:translateX(2px);}
@@ -106,6 +100,52 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 .lby-map-card.selected::after{content:'▶ เลือกอยู่';position:absolute;right:10px;font-size:8.5px;font-weight:800;color:#ffcc02;}
 .lby-map-card-thumb{width:68px;height:42px;flex:0 0 68px;border-radius:7px;overflow:hidden;border:1px solid rgba(255,255,255,0.09);}
 .lby-map-card-thumb canvas{display:block;width:68px;height:42px;} .lby-map-card-info{flex:1;min-width:0;} .lby-map-card-name{font-size:11px;font-weight:800;color:#ffe0b2;} .lby-map-card-tag{font-size:8.5px;color:#ff8a65;margin-top:1px;} .lby-map-card-speed{font-size:8.5px;color:#ffb74d;margin-top:2px;}
+/* ══ TREASURE SLOT UI ══ */
+.lby-treasure-panel { padding:12px 10px; display:flex; flex-direction:column; gap:12px; }
+.lby-treasure-equipped {
+  display:flex; gap:10px; justify-content:center; padding:6px 0 10px;
+  border-bottom:1px solid rgba(180,120,255,0.18); margin-bottom:2px;
+}
+.lby-treasure-equipped-slot {
+  width:54px; height:54px; border-radius:14px;
+  border:2px solid rgba(180,120,255,0.35);
+  background:rgba(255,255,255,0.03);
+  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+  position:relative; cursor:pointer; transition:all 0.15s; touch-action:manipulation;
+}
+.lby-treasure-equipped-slot.filled { border-color:rgba(204,68,255,0.6); background:rgba(180,120,255,0.1); }
+.lby-treasure-equipped-slot.filled:hover { border-color:#c9a0ff; background:rgba(180,120,255,0.2); }
+.lby-treasure-equipped-slot .slot-icon { font-size:22px; line-height:1; }
+.lby-treasure-equipped-slot .slot-name { font-size:7px; font-weight:800; color:#c9a0ff; text-align:center; white-space:nowrap; }
+.lby-treasure-equipped-slot .slot-empty { font-size:20px; color:rgba(180,120,255,0.3); }
+.lby-treasure-equipped-slot .slot-remove {
+  position:absolute; top:-6px; right:-6px;
+  width:16px; height:16px; border-radius:50%;
+  background:#e53935; color:#fff; font-size:9px; font-weight:900;
+  display:flex; align-items:center; justify-content:center;
+  border:1.5px solid #0d0200; cursor:pointer; line-height:1;
+}
+.lby-treasure-label { font-size:9px; font-weight:700; color:#6090cc; letter-spacing:1px; text-transform:uppercase; text-align:center; }
+/* treasure list */
+.lby-treasure-list { display:flex; flex-direction:column; gap:8px; }
+.lby-treasure-item {
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  background:rgba(255,255,255,0.03); border:1.5px solid rgba(255,255,255,0.07);
+  border-radius:13px; cursor:pointer; transition:all 0.14s; touch-action:manipulation;
+  -webkit-tap-highlight-color:transparent; position:relative;
+}
+.lby-treasure-item:hover { border-color:rgba(180,120,255,0.45); background:rgba(180,120,255,0.07); transform:translateX(2px); }
+.lby-treasure-item.equipped-in { border-color:rgba(204,68,255,0.5); background:rgba(180,120,255,0.1); }
+.lby-treasure-item-icon { font-size:28px; width:40px; text-align:center; flex:0 0 40px; line-height:1; }
+.lby-treasure-item-info { flex:1; min-width:0; }
+.lby-treasure-item-name { font-size:11px; font-weight:800; color:#ffe0b2; }
+.lby-treasure-item-desc { font-size:9px; color:#c9a0ff; margin-top:2px; line-height:1.4; }
+.lby-treasure-item-badge {
+  position:absolute; right:10px;
+  font-size:8px; font-weight:800; color:#c9a0ff;
+  background:rgba(180,120,255,0.15); border:1px solid rgba(180,120,255,0.3);
+  border-radius:10px; padding:2px 7px;
+}
 </style>
 </head>
 <body>
@@ -150,7 +190,6 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
         <div id="showcaseBonusBadge">— ไม่มีสกิล</div>
       </div>
     </div>
-    <!-- legacy hidden panels for JS compat -->
     <div class="lby-panel" id="charPanel" style="display:none!important"><div class="lby-panel-head">🧁 ตัวละคร</div><div class="char-list" id="charGrid"></div></div>
     <div class="lby-panel" id="centerPanel" style="display:none!important"><div id="charShowcase"></div><div id="mapShowcase"><canvas id="mapShowcaseCanvas" height="70"></canvas><div id="mapShowcaseOverlay"><span id="mapShowcaseName">เบเกอรี่</span><span id="mapShowcaseTag">แมพเริ่มต้น</span><span id="mapShowcaseSpeed">💨 ×5</span></div></div></div>
     <div id="rightCol" style="display:none!important"><div class="lby-panel" id="mapPanel"><div class="lby-panel-head">🗺️ แมพ</div><div class="map-list" id="mapGrid"></div></div><div id="startBox"><div id="startReadout"><span class="sr-char" id="srChar">ช็อกโกแลต</span>&nbsp;บน&nbsp;<span class="sr-map" id="srMap">เบเกอรี่</span></div><button id="startBtn" style="display:none!important">▶ เริ่มวิ่ง!</button></div></div>
@@ -170,24 +209,39 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
   <canvas id="lbyCharThumb" width="32" height="32" style="display:none;"></canvas>
 </div>
 
-<!-- Modal: เลือกตัวละคร -->
+<!-- Modal: เลือกตัวละคร (มี tab สมบัติ) -->
 <div class="lby-modal-overlay" id="modalChar">
   <div class="lby-modal lby-modal-inner">
     <button class="lby-modal-close" onclick="closeModal('modalChar')">✕</button>
     <div class="lby-modal-handle"></div>
-    <div class="lby-modal-title">🍪 เลือกตัวละคร</div>
+    <div class="lby-modal-title">🍪 ตัวละคร & สมบัติ</div>
     <div class="lby-char-tab-body">
       <div class="lby-char-tabs">
-        <button class="lby-char-tab-btn active" id="charTabBtn-char" onclick="switchCharTab('char')"><span class="lby-char-tab-icon">🍪</span><span class="lby-char-tab-label">ตัวละคร</span></button>
+        <button class="lby-char-tab-btn active" id="charTabBtn-char" onclick="switchCharTab('char')"><span class="lby-char-tab-icon">🍪</span><span class="lby-char-tab-label">คุกกี้</span></button>
         <button class="lby-char-tab-btn" id="charTabBtn-pet" onclick="switchCharTab('pet')"><span class="lby-char-tab-icon">🐾</span><span class="lby-char-tab-label">สัตว์เลี้ยง</span></button>
         <button class="lby-char-tab-btn" id="charTabBtn-treasure" onclick="switchCharTab('treasure')"><span class="lby-char-tab-icon">💎</span><span class="lby-char-tab-label">สมบัติ</span></button>
       </div>
       <div class="lby-modal-scroll" id="charTabPanel-char"><div class="lby-char-grid" id="pickerCharGrid"></div></div>
-      <div class="lby-modal-scroll" id="charTabPanel-pet" style="display:none"><div class="lby-tab-empty-hint">🐾 ระบบสัตว์เลี้ยง — เร็วๆนี้</div></div>
-      <div class="lby-modal-scroll" id="charTabPanel-treasure" style="display:none"><div class="lby-treasure-slots"><div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div><div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div><div class="lby-treasure-slot"><span class="lby-treasure-plus">+</span></div></div><div class="lby-tab-empty-hint">💎 ใส่สมบัติได้สูงสุด 3 ชิ้น — เร็วๆนี้</div></div>
+      <div class="lby-modal-scroll" id="charTabPanel-pet" style="display:none"><div style="text-align:center;color:rgba(255,255,255,0.4);font-size:12px;padding:18px 10px">🐾 ระบบสัตว์เลี้ยง — เร็วๆนี้</div></div>
+      <!-- ── TAB สมบัติ ── -->
+      <div class="lby-modal-scroll" id="charTabPanel-treasure" style="display:none">
+        <div class="lby-treasure-panel">
+          <div class="lby-treasure-label">💎 ใส่สมบัติที่ติดตัว (สูงสุด 3 ชิ้น)</div>
+          <!-- slots ที่ใส่อยู่ -->
+          <div class="lby-treasure-equipped" id="treasureEquippedRow">
+            <!-- render by JS -->
+          </div>
+          <div class="lby-treasure-label" style="margin-top:4px">สมบัติที่มี</div>
+          <!-- รายการสมบัติทั้งหมด -->
+          <div class="lby-treasure-list" id="treasureList">
+            <!-- render by JS -->
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
+
 <!-- Modal: เลือกแมพ -->
 <div class="lby-modal-overlay" id="modalMap">
   <div class="lby-modal lby-modal-inner">
@@ -203,19 +257,15 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
   function isPortrait(){ return screen.orientation?screen.orientation.type.startsWith('portrait'):window.innerHeight>window.innerWidth; }
   function load(){
     ['gameData.js','fullscreen.js','map.js'].reduce(function(p,src){
-      return p.then(function(){
-        return new Promise(function(res){
-          var s=document.createElement('script'); s.src=src; s.onload=res; document.body.appendChild(s);
-        });
-      });
-    }, Promise.resolve()).then(function(){
+      return p.then(function(){ return new Promise(function(res){ var s=document.createElement('script');s.src=src;s.onload=res;document.body.appendChild(s); }); });
+    },Promise.resolve()).then(function(){
       var raw=document.getElementById('_lobbyScript').textContent;
-      var s=document.createElement('script'); s.textContent=raw; document.body.appendChild(s);
+      var s=document.createElement('script');s.textContent=raw;document.body.appendChild(s);
     });
   }
   if(!isPortrait()){load();}
   else{
-    function oc(){ setTimeout(function(){ if(!isPortrait()){window.removeEventListener('orientationchange',oc);if(screen.orientation)screen.orientation.removeEventListener('change',oc);load();} },300); }
+    function oc(){setTimeout(function(){if(!isPortrait()){window.removeEventListener('orientationchange',oc);if(screen.orientation)screen.orientation.removeEventListener('change',oc);load();}},300);}
     window.addEventListener('orientationchange',oc);
     if(screen.orientation)screen.orientation.addEventListener('change',oc);
   }
@@ -223,31 +273,44 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 </script>
 
 <script id="_lobbyScript" type="text/plain">
-let SKILLS = typeof SKILLS_FALLBACK!=='undefined' ? SKILLS_FALLBACK : {};
-const bgC=document.getElementById('bgCanvas'), bgCtx=bgC.getContext('2d');
-let selChar='choco', selMap='bakery';
+let SKILLS=typeof SKILLS_FALLBACK!=='undefined'?SKILLS_FALLBACK:{};
+const bgC=document.getElementById('bgCanvas'),bgCtx=bgC.getContext('2d');
+let selChar='choco',selMap='bakery';
 
-// ── restore last selection ──
-(function(){ const lc=localStorage.getItem('cr_lastChar'),lm=localStorage.getItem('cr_lastMap'); if(lc&&CHARS.find(c=>c.id===lc))selChar=lc; if(lm&&MAPS.find(m=>m.id===lm))selMap=lm; })();
+// ── สมบัติที่เลือก (สูงสุด 3 ช่อง) ──
+// selTreasures = [id|null, id|null, id|null]
+let selTreasures=[null,null,null];
+
+(function(){
+  const lc=localStorage.getItem('cr_lastChar'),lm=localStorage.getItem('cr_lastMap');
+  if(lc&&CHARS.find(c=>c.id===lc))selChar=lc;
+  if(lm&&MAPS.find(m=>m.id===lm))selMap=lm;
+  try{const lt=JSON.parse(localStorage.getItem('cr_lastTreasures')||'[]');if(Array.isArray(lt))selTreasures=lt.slice(0,3).concat([null,null,null]).slice(0,3);}catch(e){}
+})();
 
 function getPlayerName(){
   let name=localStorage.getItem('cr_playerName');
-  if(!name){name=(prompt('ตั้งชื่อผู้เล่นสำหรับ leaderboard:','SonicGamer501')||'SonicGamer501').trim().slice(0,24)||'SonicGamer501';localStorage.setItem('cr_playerName',name);}
-  const el=document.getElementById('lbyPlayerName'); if(el) el.textContent=name; return name;
+  if(!name){name=(prompt('ตั้งชื่อผู้เล่น:','SonicGamer501')||'SonicGamer501').trim().slice(0,24)||'SonicGamer501';localStorage.setItem('cr_playerName',name);}
+  const el=document.getElementById('lbyPlayerName');if(el)el.textContent=name;return name;
 }
 
-function goToGame(charId,mapId){
-  localStorage.setItem('cr_lastChar',charId); localStorage.setItem('cr_lastMap',mapId);
-  goFullscreenLandscape(function(){ window.location.href='game.html?char='+encodeURIComponent(charId)+'&map='+encodeURIComponent(mapId); });
+function goToGame(charId,mapId,treasures){
+  localStorage.setItem('cr_lastChar',charId);
+  localStorage.setItem('cr_lastMap',mapId);
+  localStorage.setItem('cr_lastTreasures',JSON.stringify(treasures));
+  const tParam=treasures.filter(Boolean).join(',');
+  goFullscreenLandscape(function(){
+    window.location.href='game.html?char='+encodeURIComponent(charId)+'&map='+encodeURIComponent(mapId)+(tParam?'&t='+encodeURIComponent(tParam):'');
+  });
 }
 
-function resizeBg(){ bgC.width=innerWidth; bgC.height=innerHeight; }
+function resizeBg(){bgC.width=innerWidth;bgC.height=innerHeight;}
 window.addEventListener('resize',resizeBg);
 document.addEventListener('fullscreenchange',function(){setTimeout(resizeBg,300);});
 document.addEventListener('webkitfullscreenchange',function(){setTimeout(resizeBg,300);});
 function resize(){}
 
-// ── BG animation ──
+// ── BG animation (same as before) ──
 const stars=Array.from({length:120},()=>({x:Math.random(),y:Math.random()*0.65,r:Math.random()*1.5+0.4,phase:Math.random()*Math.PI*2,speed:0.015+Math.random()*0.025}));
 const fireflies=Array.from({length:30},()=>({x:Math.random(),y:0.4+Math.random()*0.5,r:1+Math.random()*2,vx:(Math.random()-0.5)*0.0006,vy:-0.0008-Math.random()*0.001,hue:60+Math.random()*80,life:Math.random(),phase:Math.random()*Math.PI*2}));
 const trees=[{x:0.02,h:0.38,w:0.05,type:'pine'},{x:0.08,h:0.28,w:0.035,type:'pine'},{x:0.84,h:0.32,w:0.04,type:'pine'},{x:0.90,h:0.44,w:0.06,type:'pine'},{x:0.96,h:0.26,w:0.03,type:'pine'},{x:0.14,h:0.18,w:0.05,type:'round'},{x:0.78,h:0.16,w:0.045,type:'round'}];
@@ -255,8 +318,8 @@ const tents=[{x:0.15,y:0.82,w:0.07,h:0.08,c:'#28403a'},{x:0.22,y:0.84,w:0.05,h:0
 const groundLights=Array.from({length:18},()=>({x:Math.random(),y:0.78+Math.random()*0.12,r:2+Math.random()*3,hue:Math.random()<0.5?120+Math.random()*60:40+Math.random()*30,phase:Math.random()*Math.PI*2}));
 let bgT=0;
 function animBg(){
-  bgT+=0.016; const W=bgC.width,H=bgC.height; bgCtx.clearRect(0,0,W,H);
-  const sg=bgCtx.createLinearGradient(0,0,0,H); sg.addColorStop(0,'#050518');sg.addColorStop(0.3,'#0a0b2e');sg.addColorStop(0.65,'#0d1535');sg.addColorStop(0.78,'#121d28');sg.addColorStop(1,'#0f1c10'); bgCtx.fillStyle=sg; bgCtx.fillRect(0,0,W,H);
+  bgT+=0.016;const W=bgC.width,H=bgC.height;bgCtx.clearRect(0,0,W,H);
+  const sg=bgCtx.createLinearGradient(0,0,0,H);sg.addColorStop(0,'#050518');sg.addColorStop(0.3,'#0a0b2e');sg.addColorStop(0.65,'#0d1535');sg.addColorStop(0.78,'#121d28');sg.addColorStop(1,'#0f1c10');bgCtx.fillStyle=sg;bgCtx.fillRect(0,0,W,H);
   stars.forEach(s=>{const a=0.35+0.65*(0.5+0.5*Math.sin(bgT*s.speed+s.phase));bgCtx.beginPath();bgCtx.arc(s.x*W,s.y*H,s.r,0,Math.PI*2);bgCtx.fillStyle='rgba(220,230,255,'+a+')';bgCtx.fill();});
   bgCtx.fillStyle='#0a1520';bgCtx.beginPath();bgCtx.moveTo(0,H*0.62);bgCtx.bezierCurveTo(W*0.15,H*0.48,W*0.35,H*0.55,W*0.5,H*0.52);bgCtx.bezierCurveTo(W*0.65,H*0.49,W*0.82,H*0.57,W,H*0.60);bgCtx.lineTo(W,H);bgCtx.lineTo(0,H);bgCtx.closePath();bgCtx.fill();
   bgCtx.fillStyle='#081018';bgCtx.beginPath();bgCtx.moveTo(0,H*0.70);bgCtx.bezierCurveTo(W*0.2,H*0.60,W*0.4,H*0.66,W*0.55,H*0.63);bgCtx.bezierCurveTo(W*0.7,H*0.60,W*0.85,H*0.68,W,H*0.65);bgCtx.lineTo(W,H);bgCtx.lineTo(0,H);bgCtx.closePath();bgCtx.fill();
@@ -269,24 +332,74 @@ function animBg(){
   requestAnimationFrame(animBg);
 }
 
-// ── showcase / previews ──
-const showcaseCanvas=document.getElementById('showcaseCanvas'), showcaseGlow=document.getElementById('showcaseGlow');
+// ── showcase ──
+const showcaseCanvas=document.getElementById('showcaseCanvas'),showcaseGlow=document.getElementById('showcaseGlow');
 function drawCharShowcase(ch){const cv=showcaseCanvas,c=cv.getContext('2d'),S=cv.width;c.clearRect(0,0,S,S);drawGingerbread(c,S/2,S/2+8,2.7,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});}
 function drawMapShowcase(mp){const cv=document.getElementById('mapShowcaseCanvas');if(!cv)return;const c=cv.getContext('2d');cv.width=cv.offsetWidth||180;const W=cv.width,H=70;cv.height=H;const sg=c.createLinearGradient(0,0,0,H);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);c.fillStyle=sg;c.fillRect(0,0,W,H);drawMapMotif(c,mp.id,W,H,mp.accent);const gg=c.createLinearGradient(0,H*0.62,0,H);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);c.fillStyle=gg;c.fillRect(0,H*0.62,W,H*0.38);c.fillStyle=mp.accent+'99';c.fillRect(0,H*0.62,W,2);}
 function updateShowcase(){const ch=CHARS.find(c=>c.id===selChar)||CHARS[0],mp=MAPS.find(m=>m.id===selMap)||MAPS[0];drawCharShowcase(ch);const gc=ch.bodyColor[1]+'66';showcaseGlow.style.setProperty('--glow-color',gc);showcaseCanvas.style.setProperty('--glow-color',gc);document.getElementById('showcaseName').textContent=ch.name;document.getElementById('showcaseDesc').textContent=ch.desc;const bl={yellowJelly:'🐻 ผลิตเยลลี่หมี',dash:'⚡ แดช',jellyBonus:'★ เยลลี่ +5',healPotion:'💧 ยาฮีล',revive:'💫 ฟื้นคืนชีพ'};document.getElementById('showcaseBonusBadge').textContent=ch.bonus?bl[ch.bonus]||ch.bonus:'— ไม่มีสกิล';drawMapShowcase(mp);if(document.getElementById('srChar'))document.getElementById('srChar').textContent=ch.name;if(document.getElementById('srMap'))document.getElementById('srMap').textContent=mp.name;}
 function updateReadout(){const ch=CHARS.find(c=>c.id===selChar)||CHARS[0],mp=MAPS.find(m=>m.id===selMap)||MAPS[0];const ct=document.getElementById('lbyCharThumb');if(ct){const cx=ct.getContext('2d');cx.clearRect(0,0,32,32);drawGingerbread(cx,16,18,0.44,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});}const ne=document.getElementById('lbyMapChipName');if(ne)ne.textContent=mp.name;const mt=document.getElementById('lbyMapThumb');if(mt){const mc=mt.getContext('2d');mt.width=52;mt.height=30;const sg=mc.createLinearGradient(0,0,0,30);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);mc.fillStyle=sg;mc.fillRect(0,0,52,30);drawMapMotif(mc,mp.id,52,30,mp.accent);const gg=mc.createLinearGradient(0,20,0,30);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);mc.fillStyle=gg;mc.fillRect(0,20,52,10);}}
 
-// ── build char/map lists ──
-function buildCharGrid(){const cg=document.getElementById('charGrid');CHARS.forEach(ch=>{const row=document.createElement('div');row.className='char-row'+(ch.id===selChar?' selected':'');row.dataset.id=ch.id;const av=document.createElement('div');av.className='char-row-avatar';const cv=document.createElement('canvas');cv.width=34;cv.height=34;const c=cv.getContext('2d');c.clearRect(0,0,34,34);drawGingerbread(c,17,19,0.44,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});av.appendChild(cv);const info=document.createElement('div');info.className='char-row-info';const nm=document.createElement('div');nm.className='char-row-name';nm.textContent=ch.name;const hp=document.createElement('div');hp.className='char-row-hp';hp.textContent='❤ '+ch.maxHp;info.appendChild(nm);info.appendChild(hp);row.appendChild(av);row.appendChild(info);row.addEventListener('click',()=>selectChar(ch.id));cg.appendChild(row);});}
+// ── char/map legacy grid builders ──
+function buildCharGrid(){const cg=document.getElementById('charGrid');CHARS.forEach(ch=>{const row=document.createElement('div');row.className='char-row'+(ch.id===selChar?' selected':'');row.dataset.id=ch.id;const av=document.createElement('div');av.className='char-row-avatar';const cv=document.createElement('canvas');cv.width=34;cv.height=34;const c=cv.getContext('2d');drawGingerbread(c,17,19,0.44,{body:ch.bodyColor,chip:ch.chipColor,eye:ch.eyeColor,id:ch.id},{});av.appendChild(cv);const info=document.createElement('div');info.className='char-row-info';const nm=document.createElement('div');nm.className='char-row-name';nm.textContent=ch.name;const hp=document.createElement('div');hp.className='char-row-hp';hp.textContent='❤ '+ch.maxHp;info.appendChild(nm);info.appendChild(hp);row.appendChild(av);row.appendChild(info);row.addEventListener('click',()=>selectChar(ch.id));cg.appendChild(row);});}
 function buildMapGrid(){const mg=document.getElementById('mapGrid');MAPS.forEach(mp=>{const row=document.createElement('div');row.className='map-row'+(mp.id===selMap?' selected':'');row.dataset.id=mp.id;const th=document.createElement('div');th.className='map-row-thumb';const cv=document.createElement('canvas');cv.width=120;cv.height=38;const c=cv.getContext('2d');const sg=c.createLinearGradient(0,0,0,38);sg.addColorStop(0,mp.sky[0]);sg.addColorStop(0.6,mp.sky[1]);sg.addColorStop(1,mp.sky[2]);c.fillStyle=sg;c.fillRect(0,0,120,38);drawMapMotif(c,mp.id,120,38,mp.accent);const gg=c.createLinearGradient(0,24,0,38);gg.addColorStop(0,mp.ground[0]);gg.addColorStop(1,mp.ground[1]);c.fillStyle=gg;c.fillRect(0,24,120,14);c.fillStyle=mp.accent+'88';c.fillRect(0,24,120,2);th.appendChild(cv);const info=document.createElement('div');info.className='map-row-info';const nm=document.createElement('div');nm.className='map-row-name';nm.textContent=mp.name;const tag=document.createElement('div');tag.className='map-row-tag';tag.textContent=mp.tag||'';const spd=document.createElement('div');spd.className='map-row-spd';spd.textContent='💨 ×'+(mp.speed||5);info.appendChild(nm);info.appendChild(tag);info.appendChild(spd);row.appendChild(th);row.appendChild(info);row.addEventListener('click',()=>selectMap(mp.id));mg.appendChild(row);});}
-buildCharGrid(); buildMapGrid();
+buildCharGrid();buildMapGrid();
 
 function selectChar(id){selChar=id;document.querySelectorAll('.char-row,.lby-char-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));updateShowcase();updateReadout();}
 function selectMap(id){selMap=id;document.querySelectorAll('.map-row,.lby-map-card').forEach(c=>c.classList.toggle('selected',c.dataset.id===id));updateShowcase();updateReadout();}
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
-function switchCharTab(tab){['char','pet','treasure'].forEach(t=>{document.getElementById('charTabBtn-'+t).classList.toggle('active',t===tab);document.getElementById('charTabPanel-'+t).style.display=(t===tab)?'':'none';});}
+function switchCharTab(tab){['char','pet','treasure'].forEach(t=>{document.getElementById('charTabBtn-'+t).classList.toggle('active',t===tab);document.getElementById('charTabPanel-'+t).style.display=(t===tab)?'':'none';});if(tab==='treasure')renderTreasurePanel();}
 ['modalChar','modalMap'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
+
+// ══ TREASURE PANEL ══
+function renderTreasurePanel(){
+  const row=document.getElementById('treasureEquippedRow');
+  const list=document.getElementById('treasureList');
+  if(!row||!list)return;
+
+  // ── slot row (3 ช่อง) ──
+  row.innerHTML='';
+  for(let i=0;i<3;i++){
+    const slot=document.createElement('div');
+    const tid=selTreasures[i];
+    const tr=tid?TREASURES.find(t=>t.id===tid):null;
+    slot.className='lby-treasure-equipped-slot'+(tr?' filled':'');
+    if(tr){
+      slot.innerHTML='<span class="slot-icon">'+tr.icon+'</span><span class="slot-name">'+tr.name+'</span>';
+      const rm=document.createElement('div');rm.className='slot-remove';rm.textContent='✕';
+      rm.addEventListener('click',(e)=>{e.stopPropagation();selTreasures[i]=null;renderTreasurePanel();});
+      slot.appendChild(rm);
+    }else{
+      slot.innerHTML='<span class="slot-empty">+</span>';
+    }
+    row.appendChild(slot);
+  }
+
+  // ── treasure list ──
+  list.innerHTML='';
+  TREASURES.forEach(tr=>{
+    const slotIdx=selTreasures.indexOf(tr.id);
+    const equipped=slotIdx!==-1;
+    const item=document.createElement('div');
+    item.className='lby-treasure-item'+(equipped?' equipped-in':'');
+    item.innerHTML='<div class="lby-treasure-item-icon">'+tr.icon+'</div>'
+      +'<div class="lby-treasure-item-info"><div class="lby-treasure-item-name">'+tr.name+'</div><div class="lby-treasure-item-desc">'+tr.desc+'</div></div>'
+      +(equipped?'<div class="lby-treasure-item-badge">✓ ใส่แล้ว</div>':'');
+    item.addEventListener('click',()=>{
+      if(equipped){
+        // ถอด
+        selTreasures[slotIdx]=null;
+      }else{
+        // ใส่ในช่องว่างแรก
+        const emptyIdx=selTreasures.indexOf(null);
+        if(emptyIdx===-1){alert('ใส่สมบัติได้สูงสุด 3 ชิ้น\nถอดชิ้นเก่าออกก่อน');return;}
+        selTreasures[emptyIdx]=tr.id;
+      }
+      renderTreasurePanel();
+    });
+    list.appendChild(item);
+  });
+}
 
 // ── picker char cards ──
 const pcg=document.getElementById('pickerCharGrid');
@@ -298,11 +411,11 @@ MAPS.forEach(mp=>{const card=document.createElement('div');card.className='lby-m
 
 document.getElementById('lbyCookiesBtn').addEventListener('click',()=>openModal('modalChar'));
 document.getElementById('lbyMapChip').addEventListener('click',()=>openModal('modalMap'));
-document.getElementById('startBtn').addEventListener('click',()=>goToGame(selChar,selMap));
-document.getElementById('lbyPlayBtn').addEventListener('click',()=>goToGame(selChar,selMap));
+document.getElementById('startBtn').addEventListener('click',()=>goToGame(selChar,selMap,selTreasures));
+document.getElementById('lbyPlayBtn').addEventListener('click',()=>goToGame(selChar,selMap,selTreasures));
 document.getElementById('fsBtn').addEventListener('click',()=>goFullscreenLandscape(function(){resizeBg();}));
 
-getPlayerName(); updateShowcase(); updateReadout(); resizeBg(); animBg(); updateFsBtn();
+getPlayerName();updateShowcase();updateReadout();resizeBg();animBg();updateFsBtn();
 window.addEventListener('orientationchange',()=>setTimeout(()=>goFullscreenLandscape(),300));
 if(screen.orientation)screen.orientation.addEventListener('change',()=>setTimeout(()=>goFullscreenLandscape(),300));
 </script>

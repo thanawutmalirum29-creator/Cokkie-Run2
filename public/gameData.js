@@ -50,8 +50,44 @@ const MAPS = [
     obsPalette:{ wood:['#c8c8e0','#4a4a70'], line:'#1a1a30', pattern:'metal' } },
 ];
 
+// ══════════════════════════════════════════════════════════
+// TREASURES — สมบัติ 3 ชิ้น (พื้นฐาน ค่อยอัปเดตทีหลัง)
+// ══════════════════════════════════════════════════════════
+const TREASURES = [
+  {
+    id: 'shield',
+    name: 'โล่คุ้มกัน',
+    icon: '🛡️',
+    desc: 'ป้องกันดาเมจ 1 ครั้งเมื่อเริ่มเกม',
+    color: '#4488ff',
+    glowColor: 'rgba(68,136,255,0.6)',
+    cooldownSec: 20,   // คูลดาวน์ (วิ) หลังใช้ป้องกัน
+    // effect: เพิ่ม invincible 1 ครั้งตอนเริ่ม
+    effect: 'shield',
+  },
+  {
+    id: 'boots',
+    name: 'รองเท้าจรวด',
+    icon: '👟',
+    desc: 'กระโดดได้ 3 ครั้งแทน 2 ครั้ง',
+    color: '#ff9944',
+    glowColor: 'rgba(255,153,68,0.6)',
+    cooldownSec: 0,    // passive ไม่มี cooldown
+    effect: 'tripleJump',
+  },
+  {
+    id: 'ring',
+    name: 'แหวนเยลลี่',
+    icon: '💍',
+    desc: 'เก็บเยลลี่ได้ +2 คะแนนเพิ่มทุกลูก',
+    color: '#cc44ff',
+    glowColor: 'rgba(204,68,255,0.6)',
+    cooldownSec: 0,    // passive
+    effect: 'jellyPlus2',
+  },
+];
+
 // ค่าสำรอง (ใช้ตอนยังโหลด /api/skills ไม่เสร็จ หรือเซิฟเวอร์เรียกไม่ติด)
-// — ค่าจริงที่ใช้เล่นจะมาจากเซิฟเวอร์เสมอเมื่อโหลดสำเร็จ
 const SKILLS_FALLBACK = {
   yellowJelly: { cooldownSec: 5,  jellyScore: 300 },
   revive:      { reviveHp: 20, hpPerJellies: 1, jelliesPerBonus: 500 },
@@ -60,23 +96,17 @@ const SKILLS_FALLBACK = {
   healPotion:  { cooldownSec: 25, healAmount: 3 },
 };
 
-// โหลดข้อมูลสกิล + ค่าพลังชีวิต (CHARS) + ค่าความเร็ว/ความถี่สิ่งกีดขวาง (MAPS)
-// จากเซิฟเวอร์ — ตัวเลขจริงทั้งหมดไม่ได้อยู่ในไฟล์นี้ ค่าที่เห็นใน CHARS/MAPS
-// ข้างบนเป็นแค่ "ค่าสำรอง" ใช้ตอนต่อเซิฟเวอร์ไม่ติดเท่านั้น
 async function fetchSkills() {
   try {
     const res = await fetch('/api/skills');
     if (!res.ok) throw new Error('bad status');
     const data = await res.json();
-
-    // merge ค่าพลังชีวิตจริงลงในอาเรย์ CHARS (เซิฟเวอร์เป็นค่าจริงเสมอ)
     if (data.charStats) {
       CHARS.forEach(c => {
         const s = data.charStats[c.id];
         if (s && typeof s.maxHp === 'number') c.maxHp = s.maxHp;
       });
     }
-    // merge ค่าความยาก (speed/obsInterval) ลงในอาเรย์ MAPS
     if (data.mapStats) {
       MAPS.forEach(m => {
         const s = data.mapStats[m.id];
@@ -87,7 +117,7 @@ async function fetchSkills() {
     }
     return data.skills || SKILLS_FALLBACK;
   } catch (e) {
-    console.warn('โหลดข้อมูลจากเซิฟเวอร์ไม่สำเร็จ ใช้ค่าสำรองแทน (CHARS/MAPS/SKILLS)', e);
+    console.warn('โหลดข้อมูลจากเซิฟเวอร์ไม่สำเร็จ ใช้ค่าสำรองแทน', e);
     return SKILLS_FALLBACK;
   }
 }
