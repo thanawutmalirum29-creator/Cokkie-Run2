@@ -706,14 +706,73 @@ if(screen.orientation)screen.orientation.addEventListener('change',()=>setTimeou
 
 <script>
 if('serviceWorker' in navigator){
-  let swReg=null,loadedVersion=null;window._gameStarted=false;
+  let swReg=null,loadedVersion=null,serverVersion=null;window._gameStarted=false;
   function checkForUpdate(){if(swReg)swReg.update().catch(()=>{});}
-  function applyVersionTransitionText(){fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{const txt='('+(loadedVersion||'?')+' → '+(d.version||'?')+')';const b=document.getElementById('ubVersionText');if(b)b.textContent=txt;}).catch(()=>{});}
-  function showUpdateBanner(reg){const bn=document.getElementById('updateBanner');if(!bn||bn.classList.contains('show'))return;applyVersionTransitionText();bn.classList.add('show');document.getElementById('updateNowBtn').onclick=()=>{bn.classList.remove('show');if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};document.getElementById('updateLaterBtn').onclick=()=>bn.classList.remove('show');}
+
+  function fetchServerVersion(){
+    return fetch('/api/version',{cache:'no-store'})
+      .then(r=>r.json())
+      .then(d=>{if(d.version)serverVersion=d.version;return d.version||null;})
+      .catch(()=>null);
+  }
+
+  function setVersionText(elIds){
+    const from=loadedVersion||'?';
+    const to=serverVersion||'?';
+    const txt='('+from+' → '+to+')';
+    elIds.forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=txt;});
+  }
+
+  function showUpdateBanner(reg){
+    const bn=document.getElementById('updateBanner');
+    if(!bn||bn.classList.contains('show'))return;
+    fetchServerVersion().then(()=>{
+      setVersionText(['ubVersionText']);
+      bn.classList.add('show');
+      document.getElementById('updateNowBtn').onclick=()=>{bn.classList.remove('show');if(reg.waiting)reg.waiting.postMessage({type:'SKIP_WAITING'});};
+      document.getElementById('updateLaterBtn').onclick=()=>bn.classList.remove('show');
+    });
+  }
+
   function handleUpdate(reg){showUpdateBanner(reg);}
   function handleReg(reg){swReg=reg;function onW(w){w.addEventListener('statechange',()=>{if(w.state==='installed'&&navigator.serviceWorker.controller)handleUpdate(reg);});}if(reg.waiting){handleUpdate(reg);return;}if(reg.installing)onW(reg.installing);reg.addEventListener('updatefound',()=>{if(reg.installing)onW(reg.installing);});}
-  function updateVersionDisplay(){fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{if(d.version&&!loadedVersion)loadedVersion=d.version;const el=document.getElementById('appVersion');if(el)el.textContent=d.version?'cookie-run-'+d.version:'cookie-run-?';}).catch(()=>{caches.keys().then(keys=>{const c=keys.find(k=>k.startsWith('cookie-run-'));if(c&&!loadedVersion)loadedVersion=c.replace(/^cookie-run-/,'');const el=document.getElementById('appVersion');if(el)el.textContent=c||'cookie-run-?';}).catch(()=>{});});}
-  window.addEventListener('load',()=>{navigator.serviceWorker.register('/service-worker.js').then(reg=>{handleReg(reg);updateVersionDisplay();}).catch(e=>console.warn('SW register failed',e));updateVersionDisplay();let refreshed=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(refreshed)return;refreshed=true;window.location.reload();});setInterval(checkForUpdate,5*60*1000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate();});});
+
+  function updateVersionDisplay(){
+    fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      if(d.version){
+        if(!loadedVersion)loadedVersion=d.version;
+        serverVersion=d.version;
+      }
+      const el=document.getElementById('appVersion');
+      if(el)el.textContent=d.version?'cookie-run-'+d.version:'cookie-run-?';
+    }).catch(()=>{
+      caches.keys().then(keys=>{
+        const c=keys.find(k=>k.startsWith('cookie-run-'));
+        if(c&&!loadedVersion)loadedVersion=c.replace(/^cookie-run-/,'');
+        const el=document.getElementById('appVersion');
+        if(el)el.textContent=c||'cookie-run-?';
+      }).catch(()=>{});
+    });
+  }
+
+  window.addEventListener('load',()=>{
+    fetch('/api/version',{cache:'no-store'}).then(r=>r.json()).then(d=>{
+      if(d.version&&!loadedVersion)loadedVersion=d.version;
+    }).catch(()=>{});
+
+    navigator.serviceWorker.register('/service-worker.js').then(reg=>{
+      handleReg(reg);
+      updateVersionDisplay();
+    }).catch(e=>console.warn('SW register failed',e));
+
+    updateVersionDisplay();
+    let refreshed=false;
+    navigator.serviceWorker.addEventListener('controllerchange',()=>{
+      if(refreshed)return;refreshed=true;window.location.reload();
+    });
+    setInterval(checkForUpdate,5*60*1000);
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkForUpdate();});
+  });
 }
 </script>
 </body>
