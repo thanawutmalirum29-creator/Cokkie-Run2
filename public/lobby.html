@@ -14,6 +14,8 @@
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
+html, body, button, div, span { -webkit-touch-callout:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+img, canvas { -webkit-user-drag:none; user-drag:none; }
 @keyframes rspin    { from{transform:rotate(-30deg)} to{transform:rotate(30deg)} }
 @keyframes floatY   { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
 @keyframes shine    { 0%{transform:translateX(-120%) skewX(-15deg)} 100%{transform:translateX(220%) skewX(-15deg)} }
@@ -74,6 +76,13 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; overscroll-behavior:n
 .lby-modal-overlay{display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,0.82);align-items:center;justify-content:center;backdrop-filter:blur(5px);padding:20px 12px;}
 .lby-modal-overlay.open{display:flex;}
 .lby-modal{width:100%;max-width:560px;height:calc(100dvh - 40px);background:linear-gradient(160deg,#100d22,#07050f);border:1.5px solid rgba(180,120,255,0.38);border-radius:20px;padding:0 0 12px;animation:modalPop 0.22s cubic-bezier(.2,.8,.2,1);box-shadow:0 20px 60px rgba(0,0,0,0.8),0 0 0 1px rgba(255,255,255,0.04) inset;display:flex;flex-direction:column;overflow:hidden;}
+.lby-modal.lby-modal-auto{height:auto;max-height:calc(100dvh - 40px);}
+.lby-settings-list{padding:14px 14px 16px;display:flex;flex-direction:column;gap:10px;}
+.lby-settings-item{width:100%;padding:13px 14px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.14);background:rgba(255,255,255,0.04);color:#ffe0b2;font-size:13px;font-weight:800;cursor:pointer;touch-action:manipulation;text-align:left;transition:all 0.14s cubic-bezier(.2,.8,.2,1);-webkit-tap-highlight-color:transparent;}
+.lby-settings-item:hover{border-color:rgba(255,175,75,0.5);background:rgba(255,175,75,0.08);}
+.lby-settings-item:active{transform:scale(0.97);}
+.lby-settings-exit{border-color:rgba(229,57,53,0.55);background:rgba(229,57,53,0.12);color:#ff8a80;}
+.lby-settings-exit:hover{border-color:#e53935;background:rgba(229,57,53,0.22);}
 .lby-modal-handle{width:36px;height:4px;background:rgba(255,255,255,0.18);border-radius:99px;margin:10px auto 2px;flex:0 0 4px;}
 .lby-modal-title{flex:0 0 auto;font-size:12px;font-weight:900;letter-spacing:2px;text-transform:uppercase;color:#c9a0ff;text-align:center;padding:4px 16px 8px;border-bottom:1px solid rgba(180,120,255,0.15);}
 .lby-modal-close{position:absolute;top:8px;right:12px;background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.35);font-size:18px;line-height:1;padding:4px;touch-action:manipulation;transition:color 0.15s;}
@@ -153,6 +162,11 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; overscroll-behavior:n
 <body>
 <script src="/spa-nav.js"></script>
 <script>document.body.addEventListener('touchmove',function(e){if(!e.target.closest('.lby-modal-scroll'))e.preventDefault();},{passive:false});</script>
+<script>
+document.addEventListener('contextmenu',function(e){e.preventDefault();},false);
+document.addEventListener('selectstart',function(e){e.preventDefault();},false);
+document.addEventListener('dragstart',function(e){e.preventDefault();},false);
+</script>
 <div id="updateBanner">
   <span>🆕 มีอัปเดตใหม่!</span>
   <button id="updateNowBtn">โหลดใหม่</button>
@@ -179,7 +193,7 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; overscroll-behavior:n
     <div id="lobbyTopRight">
       <div class="lby-currency lby-currency-gem"><span class="icon">💎</span><span id="lobbyGems">0</span></div>
       <div class="lby-currency"><span class="icon">🪙</span><span id="lobbyCoin">0</span></div>
-      <div class="lby-icon-btn" title="ตั้งค่า">⚙️</div>
+      <div class="lby-icon-btn" id="lbySettingsBtn" title="ตั้งค่า">⚙️</div>
     </div>
   </div>
   <div id="lobbyMain">
@@ -249,6 +263,18 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; overscroll-behavior:n
     <div class="lby-modal-handle"></div>
     <div class="lby-modal-title">🗺️ เลือกแมพ</div>
     <div class="lby-modal-scroll"><div class="lby-map-grid" id="pickerMapGrid"></div></div>
+  </div>
+</div>
+
+<!-- Modal: ตั้งค่า -->
+<div class="lby-modal-overlay" id="modalSettings">
+  <div class="lby-modal lby-modal-auto lby-modal-inner">
+    <button class="lby-modal-close" onclick="closeModal('modalSettings')">✕</button>
+    <div class="lby-modal-handle"></div>
+    <div class="lby-modal-title">⚙️ ตั้งค่า</div>
+    <div class="lby-settings-list">
+      <button class="lby-settings-item lby-settings-exit" id="exitGameBtn">🚪 ออกจากเกม (ปิดเกม)</button>
+    </div>
   </div>
 </div>
 
@@ -344,7 +370,7 @@ function selectMap(id){selMap=id;document.querySelectorAll('.lby-map-card').forE
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 function switchCharTab(tab){['char','pet','treasure'].forEach(t=>{document.getElementById('charTabBtn-'+t).classList.toggle('active',t===tab);document.getElementById('charTabPanel-'+t).style.display=(t===tab)?'':'none';});if(tab==='treasure')renderTreasurePanel();}
-['modalChar','modalMap'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
+['modalChar','modalMap','modalSettings'].forEach(id=>{document.getElementById(id).addEventListener('click',function(e){if(e.target===this)closeModal(id);});});
 
 // ══ TREASURE PANEL ══
 function renderTreasurePanel(){
@@ -408,6 +434,14 @@ document.getElementById('lbyCookiesBtn').addEventListener('click',()=>openModal(
 document.getElementById('lbyMapChip').addEventListener('click',()=>openModal('modalMap'));
 document.getElementById('lbyPlayBtn').addEventListener('click',()=>goToGame(selChar,selMap,selTreasures));
 document.getElementById('fsBtn').addEventListener('click',()=>goFullscreenLandscape(function(){resizeBg();}));
+document.getElementById('lbySettingsBtn').addEventListener('click',()=>openModal('modalSettings'));
+document.getElementById('exitGameBtn').addEventListener('click',()=>{
+  if(confirm('ต้องการออกจากเกมและปิดแอปเลยหรือไม่?')){closeApp();}
+});
+function closeApp(){
+  try{window.close();}catch(e){}
+  setTimeout(()=>{alert('ไม่สามารถปิดแอปให้อัตโนมัติได้ กรุณาปิดแอป/แท็บด้วยตัวเอง');},350);
+}
 
 getPlayerName();updateShowcase();updateReadout();resizeBg();animBg();updateFsBtn();
 fetchSkills().then(()=>{updateShowcase();updateReadout();});

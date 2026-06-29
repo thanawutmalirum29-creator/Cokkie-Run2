@@ -39,7 +39,7 @@ const MAP_TILE_LAYOUTS = {
   bakery: {
     101: [ {x:0,y:0},{x:35,y:0},{x:70,y:0},{x:105,y:0},{x:140,y:0},{x:175,y:0},{x:210,y:0},{x:245,y:0},{x:280,y:0},],
     102: [ {x:0,y:0},{x:35,y:0},{x:70,y:40},{x:105,y:70},{x:160,y:85},{x:210,y:70},{x:245,y:40},{x:280,y:0} ],
-    103: [],
+    103: [ { x: 80, y: 80 }, { x: 140, y: 110 }, { x: 200, y: 80 } ],
     104: [
       { x:  20, y: 0 }, { x:  52, y: 0 }, { x:  84, y: 0 }, { x: 116, y: 0 },
       { x: 244, y: 0 }, { x: 276, y: 0 }, { x: 300, y: 0 },
@@ -78,7 +78,7 @@ const MAP_TILE_LAYOUTS = {
       { x: 204, y: 40 },
       { x: 266, y:  0 },
     ],
-    103: [],
+    103: [ { x: 80, y: 80 }, { x: 140, y: 110 }, { x: 200, y: 80 } ],
     104: [
       { x:  20, y: 0 }, { x:  52, y: 0 }, { x:  84, y: 0 }, { x: 116, y: 0 },
       { x: 244, y: 0 }, { x: 276, y: 0 }, { x: 300, y: 0 },
@@ -124,7 +124,7 @@ const MAP_TILE_LAYOUTS = {
       { x: 204, y: 40 },
       { x: 266, y:  0 },
     ],
-    103: [],
+    103: [ { x: 80, y: 80 }, { x: 140, y: 110 }, { x: 200, y: 80 } ],
     104: [
       { x:  20, y: 0 }, { x:  52, y: 0 }, { x:  84, y: 0 }, { x: 116, y: 0 },
       { x: 244, y: 0 }, { x: 276, y: 0 }, { x: 300, y: 0 },
@@ -170,7 +170,7 @@ const MAP_TILE_LAYOUTS = {
       { x: 204, y: 40 },
       { x: 266, y:  0 },
     ],
-    103: [],
+    103: [ { x: 80, y: 80 }, { x: 140, y: 110 }, { x: 200, y: 80 } ],
     104: [
       { x:  20, y: 0 }, { x:  52, y: 0 }, { x:  84, y: 0 }, { x: 116, y: 0 },
       { x: 244, y: 0 }, { x: 276, y: 0 }, { x: 300, y: 0 },
@@ -216,7 +216,7 @@ const MAP_TILE_LAYOUTS = {
       { x: 204, y: 40 },
       { x: 266, y:  0 },
     ],
-    103: [],
+    103: [ { x: 80, y: 80 }, { x: 140, y: 110 }, { x: 200, y: 80 } ],
     104: [
       { x:  20, y: 0 }, { x:  52, y: 0 }, { x:  84, y: 0 }, { x: 116, y: 0 },
       { x: 244, y: 0 }, { x: 276, y: 0 }, { x: 300, y: 0 },
@@ -262,7 +262,7 @@ const MAP_TILE_LAYOUTS = {
       { x: 204, y: 40 },
       { x: 266, y:  0 },
     ],
-    103: [],
+    103: [ { x: 80, y: 80 }, { x: 140, y: 110 }, { x: 200, y: 80 } ],
     104: [
       { x:  20, y: 0 }, { x:  52, y: 0 }, { x:  84, y: 0 }, { x: 116, y: 0 },
       { x: 244, y: 0 }, { x: 276, y: 0 }, { x: 300, y: 0 },
@@ -408,8 +408,7 @@ function buildWorldPlanFromPattern(mapId, mapSpeed, maxHp) {
         break;
       }
       case 103: {
-        const wx = tileStart + TILE_WIDTH * 0.5;
-        plan.push({ worldX: wx, kind: 'obs', w: 80, h: 22, y: GROUND - 130, type: 'air' });
+        // tile 103 = หลุม — เปิดโล่งให้กระโดดข้าม ไม่มี obs
         break;
       }
       case 104: {
@@ -489,7 +488,26 @@ function rrectPath(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.lineTo(x+w-r,y);
 // parFar / parMid คือค่า accumulator ดิบ (ไม่จำกัด)
 // แต่ละ function wrap เองด้วย tileX helper
 // ══════════════════════════════════════════════════════════
+
+// ── Global constants ที่ใช้ร่วมกับ game.html ──
+// ถ้า game.html expose window.GW/window.GROUND ให้ใช้ค่านั้น มิฉะนั้นใช้ค่า default
+const _GW_DEFAULT     = 800;
+const _GROUND_DEFAULT = 310;
+
+// Helper เพื่อให้ drawScenery functions เข้าถึง ctx, GW, GROUND, frame ได้เสมอ
+function _getCtx()    { return (typeof ctx    !== 'undefined') ? ctx    : window.ctx;    }
+function _getFrame()  { return (typeof frame  !== 'undefined') ? frame  : (window.frame||0); }
+function _getGW()     { return (typeof GW     !== 'undefined') ? GW     : _GW_DEFAULT;   }
+function _getGROUND() { return (typeof GROUND !== 'undefined') ? GROUND : _GROUND_DEFAULT; }
+function _getMAP()    { return (typeof MAP    !== 'undefined') ? MAP    : window.MAP;     }
+
 function drawMapScenery(id, parFar, parMid) {
+  // resolve globals จาก game.html IIFE (expose ผ่าน window.xxx)
+  /* eslint-disable no-global-assign */
+  if (typeof ctx    === 'undefined' || !ctx)    { try { ctx    = window.ctx;    } catch(e){} }
+  if (typeof frame  === 'undefined')            { try { frame  = window.frame;  } catch(e){} }
+  if (typeof MAP    === 'undefined' || !MAP)    { try { MAP    = window.MAP;    } catch(e){} }
+  /* eslint-enable no-global-assign */
   switch (id) {
     case 'bakery':   return drawSceneryBakery(parFar, parMid);
     case 'candy':    return drawSceneryCandy(parFar, parMid);
@@ -652,6 +670,8 @@ function drawSceneryStars(parFar, parMid) {
 
 
 function drawObs(o) {
+  if (typeof ctx === 'undefined' || !ctx) { try { ctx = window.ctx; } catch(e){ return; } }
+  if (typeof MAP === 'undefined' || !MAP) { try { MAP = window.MAP; } catch(e){} }
   ctx.save();
   const pal = (MAP.obsPalette) || { wood:['#9e7a50','#5c3d1e'], line:'#3d2000', pattern:'wood' };
   const [cA, cB] = pal.wood;

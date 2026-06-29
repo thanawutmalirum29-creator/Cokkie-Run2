@@ -14,6 +14,8 @@
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
+html, body, button, div, span, canvas { -webkit-touch-callout:none; -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none; -webkit-tap-highlight-color:transparent; }
+img, canvas { -webkit-user-drag:none; user-drag:none; }
 @keyframes rspin    { from{transform:rotate(-30deg)} to{transform:rotate(30deg)} }
 @keyframes hpShake  { 0%,100%{transform:translateX(-50%)} 20%{transform:translateX(calc(-50% - 6px))} 60%{transform:translateX(calc(-50% + 6px))} }
 @keyframes hpPulse  { 0%,100%{opacity:1} 50%{opacity:0.55} }
@@ -126,6 +128,11 @@ canvas#c { display:block; }
 <body>
 <script src="/spa-nav.js"></script>
 <script>document.body.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});</script>
+<script>
+document.addEventListener('contextmenu',function(e){e.preventDefault();},false);
+document.addEventListener('selectstart',function(e){e.preventDefault();},false);
+document.addEventListener('dragstart',function(e){e.preventDefault();},false);
+</script>
 
 <div id="updateBanner">
   <span>🆕 มีอัปเดตใหม่!</span>
@@ -229,7 +236,7 @@ const loadingScreenEl =document.getElementById('loadingScreen');
 const ldBarInnerEl    =document.getElementById('ldBarInner');
 const ldHintEl        =document.getElementById('ldHint');
 const canvas =document.getElementById('c');
-const ctx    =canvas.getContext('2d');
+const ctx    =canvas.getContext('2d');window.ctx=ctx;
 const overlay        =document.getElementById('overlay');
 const overlayIdleEl  =document.getElementById('overlayIdle');
 const overlayDeadEl  =document.getElementById('overlayDead');
@@ -256,9 +263,9 @@ let selMap =window._startMap ||'bakery';
 let selTreasureIds=window._startTreasures||[];
 
 let CHAR_OBJ=CHARS.find(c=>c.id===selChar)||CHARS[0];
-let MAP_OBJ =MAPS.find(m=>m.id===selMap)||MAPS[0];
+let MAP_OBJ =MAPS.find(m=>m.id===selMap)||MAPS[0];window.MAP_OBJ=MAP_OBJ;
 let CHAR=toCharState(CHAR_OBJ);
-let MAP =toMapState(MAP_OBJ);
+let MAP =toMapState(MAP_OBJ);window.MAP=MAP;
 
 // ══ TREASURE RUNTIME STATE ══
 // treasureSlots = [{def, cdFramesLeft, cdTotal, passive}]
@@ -536,6 +543,7 @@ function startGame(){
   overlay.style.display='none';
   pauseBtnEl.style.display='flex';
   cancelAnimationFrame(raf);
+  startRunOnServer(CHAR_OBJ.id,MAP_OBJ.id);
   raf=requestAnimationFrame(loop);
 }
 function pauseGame(){
@@ -667,7 +675,7 @@ function loop(){
     }
   }});
   // collision — potions
-  pots.forEach(p=>{if(!p.done&&Math.abs(p.x-(cookie.x+CW/2))<18&&Math.abs(p.y-(cookie.y-CH/2))<20){p.done=true;const cfg=SKILLS.healPotion||SKILLS_FALLBACK.healPotion;hp=Math.min(CHAR.maxHp,hp+(cfg.healAmount||15));renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(p.x,p.y-10,'+HP 💧','#69f0ae');burst(p.x,p.y,'#69f0ae',6);}});
+  pots.forEach(p=>{if(!p.done&&Math.abs(p.x-(cookie.x+CW/2))<18&&Math.abs(p.y-(cookie.y-CH/2))<20){p.done=true;const cfg=SKILLS.healPotion||SKILLS_FALLBACK.healPotion;hp=Math.min(CHAR.maxHp,hp+(cfg.healAmount||3));renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(p.x,p.y-10,'+HP 💧','#69f0ae');burst(p.x,p.y,'#69f0ae',6);}});
   // collision — items
   items.forEach(it=>{if(!it.done&&Math.abs(it.x-(cookie.x+CW/2))<20&&Math.abs(it.y-(cookie.y-CH/2))<22){it.done=true;if(it.type==='hpLarge'){hp=Math.min(CHAR.maxHp,hp+30);renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(it.x,it.y-10,'+30 HP','#00c853');burst(it.x,it.y,'#00c853',8);}else if(it.type==='hpSmall'){hp=Math.min(CHAR.maxHp,hp+10);renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(it.x,it.y-10,'+10 HP','#69f0ae');burst(it.x,it.y,'#69f0ae',5);}else if(it.type==='fireball'){fireballActive=true;fireballFrames=FIREBALL_DURATION;addFloat(it.x,it.y-10,'🔥 Fireball!','#ff6d00');burst(it.x,it.y,'#ff6d00',10);}else if(it.type==='magnet'){magnetActive=true;magnetFrames=MAGNET_DURATION;addFloat(it.x,it.y-10,'🧲 Magnet!','#aa44ff');burst(it.x,it.y,'#aa44ff',8);}}});
 
@@ -707,6 +715,7 @@ function startLoadingThenGame(charId,mapId){
   CHAR_OBJ=CHARS.find(c=>c.id===charId)||CHARS[0];
   MAP_OBJ =MAPS.find(m=>m.id===mapId)||MAPS[0];
   CHAR=toCharState(CHAR_OBJ);MAP=toMapState(MAP_OBJ);
+  window.MAP_OBJ=MAP_OBJ;window.MAP=MAP;
   startRunOnServer(CHAR_OBJ.id,MAP_OBJ.id);
   initTreasureSlots();
   loadingScreenEl.style.display='flex';
