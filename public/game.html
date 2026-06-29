@@ -299,23 +299,35 @@ function applyPassiveTreasures(){
 }
 
 // ── BUILD HUD DOM ──
+// cache refs เพื่อไม่ต้อง getElementById ทุก frame
+const _tSlotEls=[];
+const _tCdTextEls=[];
+const _tCdCvEls=[];
+const _tCdCtxs=[];
+
 function buildTreasureHud(){
   treasureHud.innerHTML='';
+  _tSlotEls.length=0;_tCdTextEls.length=0;_tCdCvEls.length=0;_tCdCtxs.length=0;
   if(treasureSlots.length===0)return;
   treasureSlots.forEach((slot,i)=>{
     const el=document.createElement('div');
     el.className='t-slot has-item'+(slot.passive?' passive':'');
     el.style.animationDelay=(i*0.08)+'s';
-    el.innerHTML=`<span class="t-slot-icon">${slot.def.icon}</span>`
-      +(slot.passive?'<span class="t-slot-passive-badge">P</span>':'')
-      +'<span class="t-slot-cd-text" id="tcd'+i+'"></span>'
-      +'<canvas class="t-slot-cdcanvas" id="tcc'+i+'" width="44" height="44"></canvas>';
+    const cdSpan=document.createElement('span');cdSpan.className='t-slot-cd-text';
+    const cdCv=document.createElement('canvas');cdCv.className='t-slot-cdcanvas';cdCv.width=44;cdCv.height=44;
+    const iconSpan=document.createElement('span');iconSpan.className='t-slot-icon';iconSpan.textContent=slot.def.icon;
+    el.appendChild(iconSpan);
+    if(slot.passive){const pb=document.createElement('span');pb.className='t-slot-passive-badge';pb.textContent='P';el.appendChild(pb);}
+    el.appendChild(cdSpan);el.appendChild(cdCv);
     if(!slot.passive){
       el.addEventListener('click',()=>activateTreasure(i));
       el.addEventListener('touchstart',e=>{e.preventDefault();activateTreasure(i);},{passive:false});
     }
-    el.id='tslot'+i;
     treasureHud.appendChild(el);
+    _tSlotEls.push(el);
+    _tCdTextEls.push(cdSpan);
+    _tCdCvEls.push(cdCv);
+    _tCdCtxs.push(cdCv.getContext('2d'));
   });
 }
 
@@ -335,9 +347,9 @@ function activateTreasure(i){
 function updateTreasureHud(){
   treasureSlots.forEach((slot,i)=>{
     if(slot.cdFramesLeft>0)slot.cdFramesLeft--;
-    const el=document.getElementById('tslot'+i);
-    const cdText=document.getElementById('tcd'+i);
-    const cdCv=document.getElementById('tcc'+i);
+    const el=_tSlotEls[i];
+    const cdText=_tCdTextEls[i];
+    const cc=_tCdCtxs[i];
     if(!el)return;
     const pct=slot.cdTotal>0?slot.cdFramesLeft/slot.cdTotal:0;
     const ready=!slot.passive&&slot.cdFramesLeft===0;
@@ -350,21 +362,18 @@ function updateTreasureHud(){
       }else{cdText.textContent='';}
     }
     // cooldown arc on canvas
-    if(cdCv&&!slot.passive&&slot.cdFramesLeft>0){
-      const cc=cdCv.getContext('2d');
+    if(cc&&!slot.passive&&slot.cdFramesLeft>0){
       cc.clearRect(0,0,44,44);
-      // dark overlay
       cc.fillStyle='rgba(0,0,0,0.5)';
       cc.beginPath();cc.arc(22,22,22,0,Math.PI*2);cc.fill();
-      // remaining arc (clockwise sweep from top)
       cc.strokeStyle='rgba(255,215,0,0.85)';cc.lineWidth=3.5;
       cc.beginPath();
       const startA=-Math.PI/2;
       const endA=startA+pct*Math.PI*2;
       cc.arc(22,22,19,startA,endA);
       cc.stroke();
-    }else if(cdCv){
-      const cc=cdCv.getContext('2d');cc.clearRect(0,0,44,44);
+    }else if(cc&&!slot.cdFramesLeft){
+      cc.clearRect(0,0,44,44);
     }
   });
 }
@@ -386,9 +395,13 @@ const MAGNET_DURATION=6*60;
 const MAGNET_RADIUS=160;
 let parts=[];
 const floats=[];
+let floatsStart=0; // index แทน shift() เพื่อไม่ต้อง re-allocate array
 let jellyCount=0,hasRevived=false,skillTimer=0,dashing=false,dashFramesLeft=0;
 const clouds=Array.from({length:6},(_,i)=>({x:i*140+40,y:40+Math.random()*60,w:80+Math.random()*60,s:0.3+Math.random()*0.4}));
 let currentRunToken=null;
+// cache score DOM elements — ไม่ต้อง getElementById ทุก frame
+const scEl=document.getElementById('sc');
+const hiEl=document.getElementById('hi');
 
 function getPlayerName(){
   let name=localStorage.getItem('cr_playerName');
@@ -475,7 +488,7 @@ function cRight(){return cookie.x+CW;}
 function reset(){
   score=0;frame=0;speed=MAP.speed;
   cookie.x=110;cookie.y=GROUND;cookie.vy=0;cookie.jumps=0;cookie.alive=true;
-  obs=[];jels=[];pots=[];items=[];parts=[];floats.length=0;
+  obs=[];jels=[];pots=[];items=[];parts=[];floats.length=0;floatsStart=0;
   worldPlan=buildWorldPlanFromPattern(MAP_OBJ.id,MAP.speed,CHAR.maxHp);planIdx=0;worldDist=0;
   hp=CHAR.maxHp;hpTimer=0;invincible=false;
   jellyCount=0;hasRevived=false;skillTimer=0;dashing=false;dashFramesLeft=0;
@@ -647,7 +660,6 @@ function loop(){
     const jbCfg=SKILLS.jellyBonus||SKILLS_FALLBACK.jellyBonus;const yjCfg=SKILLS.yellowJelly||SKILLS_FALLBACK.yellowJelly;
     const pts=(j.val||1)+(CHAR.bonus==='jellyBonus'?(jbCfg.bonusPoints||5):0)+(j.type==='bear'?(yjCfg.bonusScore||5):0)+getTreasureJellyBonus();
     score+=pts;jellyCount++;best=Math.max(best,score);
-    document.getElementById('sc').textContent=Math.floor(score);document.getElementById('hi').textContent=Math.floor(best);
     addFloat(j.x,j.y-10,'+'+pts,'#ffee44');burst(j.x,j.y,'#ffcc02',5);
     // strawberry: เก็บเยลลี่ครบทุก N ลูก เกิดเยลลี่หมีโบนัสลอยไว้ข้างหน้า
     if(CHAR.bonus==='yellowJelly'&&jellyCount%(yjCfg.spawnEvery||25)===0){
@@ -660,7 +672,7 @@ function loop(){
   items.forEach(it=>{if(!it.done&&Math.abs(it.x-(cookie.x+CW/2))<20&&Math.abs(it.y-(cookie.y-CH/2))<22){it.done=true;if(it.type==='hpLarge'){hp=Math.min(CHAR.maxHp,hp+30);renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(it.x,it.y-10,'+30 HP','#00c853');burst(it.x,it.y,'#00c853',8);}else if(it.type==='hpSmall'){hp=Math.min(CHAR.maxHp,hp+10);renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(it.x,it.y-10,'+10 HP','#69f0ae');burst(it.x,it.y,'#69f0ae',5);}else if(it.type==='fireball'){fireballActive=true;fireballFrames=FIREBALL_DURATION;addFloat(it.x,it.y-10,'🔥 Fireball!','#ff6d00');burst(it.x,it.y,'#ff6d00',10);}else if(it.type==='magnet'){magnetActive=true;magnetFrames=MAGNET_DURATION;addFloat(it.x,it.y-10,'🧲 Magnet!','#aa44ff');burst(it.x,it.y,'#aa44ff',8);}}});
 
   score+=speed*SCORE_MULT*0.08;best=Math.max(best,score);
-  document.getElementById('sc').textContent=Math.floor(score);document.getElementById('hi').textContent=Math.floor(best);
+  scEl.textContent=Math.floor(score);hiEl.textContent=Math.floor(best);
 
   // update treasure HUD each frame
   updateTreasureHud();
@@ -669,8 +681,9 @@ function loop(){
   drawBg();obs.forEach(drawObs);jels.forEach(drawJel);pots.forEach(drawPot);items.forEach(drawItem);
   parts.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.vy+=0.25;p.life-=0.045;ctx.save();ctx.globalAlpha=Math.max(0,p.life);ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();ctx.restore();});
   parts=parts.filter(p=>p.life>0);
-  floats.forEach(f=>{f.y+=f.vy;f.life-=0.03;ctx.save();ctx.globalAlpha=Math.max(0,f.life);ctx.fillStyle=f.color;ctx.font='bold 14px sans-serif';ctx.textAlign='center';ctx.fillText(f.text,f.x,f.y);ctx.restore();});
-  while(floats.length&&floats[0].life<=0)floats.shift();
+  ctx.font='bold 14px sans-serif';ctx.textAlign='center';
+  for(let fi=floatsStart;fi<floats.length;fi++){const f=floats[fi];f.y+=f.vy;f.life-=0.03;if(f.life<=0){floatsStart=fi+1;continue;}ctx.save();ctx.globalAlpha=f.life;ctx.fillStyle=f.color;ctx.fillText(f.text,f.x,f.y);ctx.restore();}
+  if(floatsStart>20){floats.splice(0,floatsStart);floatsStart=0;}
   drawCookie();
 }
 

@@ -713,13 +713,11 @@ function drawObs(o) {
       }
       ctx.restore();
       break;
-    case 'ice': // ไอศกรีม — เหลี่ยมน้ำแข็งระยิบระยับ
+    case 'ice': // ไอศกรีม — เหลี่ยมน้ำแข็งระยิบระยับ (ใช้ตำแหน่งคงที่ ไม่สุ่มทุก frame)
       ctx.save(); rrectPath(ctx, o.x, o.y, o.w, o.h, 4); ctx.clip();
       ctx.strokeStyle = 'rgba(255,255,255,0.55)'; ctx.lineWidth = 1;
-      for (let i = 0; i < 5; i++) {
-        const fx = o.x + Math.random() * o.w, fy = o.y + Math.random() * o.h;
-        ctx.beginPath(); ctx.moveTo(fx - 4, fy); ctx.lineTo(fx + 4, fy); ctx.moveTo(fx, fy - 4); ctx.lineTo(fx, fy + 4); ctx.stroke();
-      }
+      { const pts=[[0.2,0.25],[0.6,0.55],[0.35,0.75],[0.75,0.2],[0.5,0.45]];
+        for(const [px,py] of pts){const fx=o.x+px*o.w,fy=o.y+py*o.h;ctx.beginPath();ctx.moveTo(fx-4,fy);ctx.lineTo(fx+4,fy);ctx.moveTo(fx,fy-4);ctx.lineTo(fx,fy+4);ctx.stroke();} }
       ctx.restore();
       ctx.fillStyle = 'rgba(255,255,255,0.18)';
       ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(o.x + o.w * 0.4, o.y); ctx.lineTo(o.x, o.y + o.h); ctx.closePath(); ctx.fill();
