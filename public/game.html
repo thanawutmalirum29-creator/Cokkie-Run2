@@ -6,6 +6,10 @@
 <title>🍪 คุกกี้วิ่ง! — เกม</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ff6b35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="คุกกี้วิ่ง">
 <link rel="icon" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <style>
@@ -23,7 +27,7 @@
 @keyframes tSlotPop { 0%{transform:scale(0.7);opacity:0} 60%{transform:scale(1.1)} 100%{transform:scale(1);opacity:1} }
 @keyframes tSlotReady{ 0%,100%{box-shadow:0 0 0 0 rgba(255,215,0,0)} 50%{box-shadow:0 0 0 4px rgba(255,215,0,0.5)} }
 
-html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; font-family:'Segoe UI','Noto Sans Thai',sans-serif; color:#ffe0b2; }
+html, body { width:100dvw; height:100dvh; overflow:hidden; overscroll-behavior:none; background:#0d0200; font-family:'Segoe UI','Noto Sans Thai',sans-serif; color:#ffe0b2; }
 
 #rotatePrompt { display:none; position:fixed; inset:0; background:#0d0200; z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
 #rotatePrompt .icon { font-size:72px; animation:rspin 1.6s ease-in-out infinite alternate; }
@@ -120,6 +124,8 @@ canvas#c { display:block; }
 </style>
 </head>
 <body>
+<script src="/spa-nav.js"></script>
+<script>document.body.addEventListener('touchmove',function(e){e.preventDefault();},{passive:false});</script>
 
 <div id="updateBanner">
   <span>🆕 มีอัปเดตใหม่!</span>
@@ -203,7 +209,7 @@ canvas#c { display:block; }
       return p.then(function(){return new Promise(function(res){var s=document.createElement('script');s.src=src;s.onload=res;document.body.appendChild(s);});});
     },Promise.resolve()).then(function(){
       var raw=document.getElementById('_gameScript').textContent;
-      var s=document.createElement('script');s.textContent=raw;document.body.appendChild(s);
+      var s=document.createElement('script');s.textContent='(function(){\n'+raw+'\n})();';document.body.appendChild(s);
     });
   }
   if(!isPortrait()){load();}
@@ -235,7 +241,7 @@ const hpWrap     =document.getElementById('hpWrap');
 const dmgOverlay =document.getElementById('dmgOverlay');
 const treasureHud=document.getElementById('treasureHud');
 
-function showLobbyScreen(){cancelAnimationFrame(raf);state='idle';window.location.href='/lobby';}
+function showLobbyScreen(){cancelAnimationFrame(raf);state='idle';if(window.crNavigate)window.crNavigate('/lobby');else window.location.href='/lobby';}
 
 const GW=800,GH=400,GROUND=310;
 const HP_TICK_FRAMES=120;

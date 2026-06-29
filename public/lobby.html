@@ -6,6 +6,10 @@
 <title>🍪 คุกกี้วิ่ง! — ล็อบบี้</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#ff6b35">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="คุกกี้วิ่ง">
 <link rel="icon" href="/icons/icon-192.png">
 <link rel="apple-touch-icon" href="/icons/icon-192.png">
 <style>
@@ -17,7 +21,7 @@
 @keyframes glowRing   { 0%,100%{opacity:0.5;transform:scale(0.95)} 50%{opacity:1;transform:scale(1.05)} }
 @keyframes modalPop   { from{opacity:0;transform:scale(0.92) translateY(10px)} to{opacity:1;transform:scale(1) translateY(0)} }
 @keyframes treasurePop{ 0%{transform:scale(0.85);opacity:0} 100%{transform:scale(1);opacity:1} }
-html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; font-family:'Segoe UI','Noto Sans Thai',sans-serif; color:#ffe0b2; }
+html, body { width:100dvw; height:100dvh; overflow:hidden; overscroll-behavior:none; background:#0d0200; font-family:'Segoe UI','Noto Sans Thai',sans-serif; color:#ffe0b2; }
 #rotatePrompt { display:none; position:fixed; inset:0; background:#0d0200; z-index:9999; flex-direction:column; align-items:center; justify-content:center; gap:20px; }
 #rotatePrompt .icon { font-size:72px; animation:rspin 1.6s ease-in-out infinite alternate; }
 #rotatePrompt p { font-size:22px; color:#ff8a65; text-align:center; }
@@ -147,6 +151,8 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
 </style>
 </head>
 <body>
+<script src="/spa-nav.js"></script>
+<script>document.body.addEventListener('touchmove',function(e){if(!e.target.closest('.lby-modal-scroll'))e.preventDefault();},{passive:false});</script>
 <div id="updateBanner">
   <span>🆕 มีอัปเดตใหม่!</span>
   <button id="updateNowBtn">โหลดใหม่</button>
@@ -254,7 +260,7 @@ html, body { width:100dvw; height:100dvh; overflow:hidden; background:#0d0200; f
       return p.then(function(){ return new Promise(function(res){ var s=document.createElement('script');s.src=src;s.onload=res;document.body.appendChild(s); }); });
     },Promise.resolve()).then(function(){
       var raw=document.getElementById('_lobbyScript').textContent;
-      var s=document.createElement('script');s.textContent=raw;document.body.appendChild(s);
+      var s=document.createElement('script');s.textContent='(function(){\n'+raw+'\nwindow.closeModal=closeModal;window.switchCharTab=switchCharTab;window.openModal=openModal;\n})();';document.body.appendChild(s);
     });
   }
   if(!isPortrait()){load();}
@@ -294,7 +300,8 @@ function goToGame(charId,mapId,treasures){
   localStorage.setItem('cr_lastTreasures',JSON.stringify(treasures));
   const tParam=treasures.filter(Boolean).join(',');
   goFullscreenLandscape(function(){
-    window.location.href='/game?char='+encodeURIComponent(charId)+'&map='+encodeURIComponent(mapId)+(tParam?'&t='+encodeURIComponent(tParam):'');
+    const url='/game?char='+encodeURIComponent(charId)+'&map='+encodeURIComponent(mapId)+(tParam?'&t='+encodeURIComponent(tParam):'');
+    if(window.crNavigate) window.crNavigate(url); else window.location.href=url;
   });
 }
 
