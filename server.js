@@ -45,12 +45,16 @@ initDb().catch(err => console.error('DB init error:', err));
 // ข้อมูลสกิล — เก็บไว้ฝั่งเซิฟเวอร์เท่านั้น (ไม่อยู่ในไฟล์ public
 // ที่ client โหลดได้ตรงๆ) เพื่อกันการแก้ตัวเลขโกงผ่านไฟล์ฝั่ง client
 // ══════════════════════════════════════════════════════════
+// หมายเหตุ: ชื่อฟิลด์ต้องตรงกับที่ public/gameData.js (SKILLS_FALLBACK) และ
+// public/game.html ใช้งานจริงเป๊ะๆ ไม่งั้นค่าที่ตั้งตรงนี้จะไม่มีผลกับเกมเลย
+// (เคยมีบั๊กแบบนี้มาก่อน: yellowJelly/jellyBonus/healPotion ใช้ชื่อฟิลด์ไม่ตรงกัน
+// เลยใช้ค่า fallback ของ client เสมอ ไม่ว่าจะแก้ค่าตรงนี้ยังไงก็ตาม)
 const SKILLS = {
-  yellowJelly: { cooldownSec: 5,  jellyScore: 300 },
+  yellowJelly: { spawnEvery: 25, bonusScore: 5 },      // ทุกๆ N เยลลี่ที่เก็บได้ จะมีหมีเยลลี่โบนัสโผล่มา (+bonusScore แต้ม)
   revive:      { reviveHp: 20, hpPerJellies: 1, jelliesPerBonus: 500 },
   dash:        { cooldownSec: 15, durationSec: 4, speedMult: 1.8 },
-  jellyBonus:  { bonus: 1 },
-  healPotion:  { cooldownSec: 25, healAmount: 3 },
+  jellyBonus:  { bonusPoints: 5 },                     // เก็บเยลลี่ปกติได้คะแนนเพิ่ม +bonusPoints ต่อลูก
+  healPotion:  { spawnRate: 180, healAmount: 3 },      // spawnRate = เฉลี่ย 1 ครั้งทุกๆ N เฟรม (สุ่ม ไม่ใช่ตายตัว)
 };
 
 // ค่าพลังชีวิตของแต่ละคุกกี้ — ไม่ควรแก้ได้จาก client
