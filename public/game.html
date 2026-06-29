@@ -213,7 +213,11 @@ document.addEventListener('dragstart',function(e){e.preventDefault();},false);
   function isPortrait(){return screen.orientation?screen.orientation.type.startsWith('portrait'):window.innerHeight>window.innerWidth;}
   function load(){
     ['gameData.js','fullscreen.js','map.js'].reduce(function(p,src){
-      return p.then(function(){return new Promise(function(res){var s=document.createElement('script');s.src=src;s.onload=res;document.body.appendChild(s);});});
+      return p.then(function(){return new Promise(function(res){
+        var abs;try{abs=new URL(src,location.href).href;}catch(e){abs=src;}
+        if(window.__crLoadedScripts&&window.__crLoadedScripts.has(abs)){res();return;}
+        var s=document.createElement('script');s.src=src;s.onload=function(){if(window.__crLoadedScripts)window.__crLoadedScripts.add(abs);res();};document.body.appendChild(s);
+      });});
     },Promise.resolve()).then(function(){
       var raw=document.getElementById('_gameScript').textContent;
       var s=document.createElement('script');s.textContent='(function(){\n'+raw+'\n})();';document.body.appendChild(s);

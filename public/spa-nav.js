@@ -48,6 +48,12 @@
       document.body.setAttribute('class', doc.body.getAttribute('class')||'');
       if(isReplace) history.replaceState({crUrl:url}, '', url);
       else history.pushState({crUrl:url}, '', url);
+      // เปลี่ยนหน้าแล้วต้องสลับ <style> ในหัวหน้าเว็บด้วย ไม่ใช่แค่ <body>
+      // เพราะ game.html / lobby.html แต่ละหน้ามี <style> ของตัวเอง
+      // (บั๊กเดิม: สลับแค่ body ทำให้ไปหน้าเกมแล้ว CSS ของหน้าเกมไม่ถูกโหลด
+      //  เลย์เอาท์พัง ปุ่ม/พื้นหลัง/overlay ทับกันมั่ว มองดูเหมือนจอแดงค้าง)
+      Array.prototype.slice.call(document.head.querySelectorAll('style')).forEach(function(el){ el.remove(); });
+      Array.prototype.slice.call(doc.head.querySelectorAll('style')).forEach(function(el){ document.head.appendChild(el.cloneNode(true)); });
       document.body.innerHTML = doc.body.innerHTML;
       var scripts = Array.prototype.slice.call(doc.body.querySelectorAll('script'));
       runScriptsInOrder(scripts, 0, function(){
