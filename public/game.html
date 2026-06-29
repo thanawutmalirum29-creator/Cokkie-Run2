@@ -112,17 +112,165 @@ canvas#c { display:block; }
   font-size:7px; font-weight:900; color:#80b4ff; line-height:1;
 }
 
-#overlay { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 40%,rgba(40,12,0,0.92),rgba(8,2,0,0.95)); z-index:20; gap:14px; }
-#overlay > div { display:flex; flex-direction:column; align-items:center; gap:12px; background:rgba(20,6,0,0.55); border:1.5px solid rgba(255,107,53,0.4); border-radius:20px; padding:28px 34px; box-shadow:0 0 40px rgba(255,107,53,0.18),inset 0 1px 0 rgba(255,255,255,0.05); animation:popIn 0.3s ease; }
-#overlay h1{font-size:38px;color:#ff6b35;text-shadow:0 0 20px #ff3d00;} #overlay p{color:#ffe0b2;font-size:17px;text-align:center;line-height:1.6;}
-.hint { color:#ff8a65; font-size:13px; border:1px solid #ff6b3544; border-radius:8px; padding:7px 16px; background:rgba(255,107,53,0.08); }
-.btn-play { padding:13px 42px; font-size:20px; font-weight:800; letter-spacing:0.5px; background:linear-gradient(135deg,#ff6b35,#e53935); color:#fff; border:none; border-radius:50px; cursor:pointer; box-shadow:0 4px 20px #ff3d0077,inset 0 1px 0 rgba(255,255,255,0.15); transition:transform 0.1s,box-shadow 0.15s; touch-action:manipulation; position:relative; overflow:hidden; }
-.btn-play::before{content:'';position:absolute;top:0;bottom:0;width:35%;background:linear-gradient(115deg,transparent,rgba(255,255,255,0.4),transparent);animation:shine 2.8s ease-in-out infinite;}
-.btn-play:active{transform:scale(0.95);} .btn-play:hover{box-shadow:0 6px 28px #ff3d0099,inset 0 1px 0 rgba(255,255,255,0.15);}
-.btn-lobby { padding:9px 26px; font-size:14px; font-weight:700; background:rgba(255,107,53,0.15); color:#ff8a65; border:1.5px solid #ff6b3566; border-radius:50px; cursor:pointer; transition:background 0.15s,transform 0.12s; touch-action:manipulation; }
-.btn-lobby:hover{background:rgba(255,107,53,0.28);transform:translateY(-1px);} .btn-lobby:active{transform:scale(0.95);}
-.score-card { display:flex; gap:18px; justify-content:center; background:rgba(0,0,0,0.3); border:1px solid rgba(255,107,53,0.3); border-radius:14px; padding:10px 22px; }
-.score-card .col{text-align:center;} .score-card .col .lbl{font-size:11px;color:#ffb74d;letter-spacing:0.5px;} .score-card .col .val{font-size:26px;font-weight:900;color:#ff6b35;text-shadow:0 0 12px #ff6b3577;} .score-card .col .val.gold{color:#ffcc02;text-shadow:0 0 12px #ffcc0277;}
+/* ════════════════════════════════════════
+   OVERLAY — redesigned candy-dark arcade UI
+   ════════════════════════════════════════ */
+@keyframes jellyBob   { 0%,100%{transform:translateY(0) scale(1)} 50%{transform:translateY(-5px) scale(1.06)} }
+@keyframes glowPulse  { 0%,100%{opacity:0.55} 50%{opacity:1} }
+@keyframes crumbDrift { 0%{transform:translateY(0) rotate(0deg);opacity:0.7} 100%{transform:translateY(-320px) rotate(360deg);opacity:0} }
+@keyframes titleWave  { 0%,100%{transform:skewX(0deg) scaleY(1)} 40%{transform:skewX(-2deg) scaleY(1.04)} 70%{transform:skewX(1.5deg) scaleY(0.97)} }
+@keyframes btnPunch   { 0%{transform:scale(1)} 30%{transform:scale(0.93)} 60%{transform:scale(1.04)} 100%{transform:scale(1)} }
+@keyframes rippleOut  { 0%{box-shadow:0 0 0 0 rgba(255,204,2,0.6)} 100%{box-shadow:0 0 0 18px rgba(255,204,2,0)} }
+
+/* ── Overlay backdrop with floating cookie crumbs ── */
+#overlay {
+  position:absolute; inset:0; z-index:20;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  /* layered bg: dark vignette + subtle dot grid */
+  background:
+    radial-gradient(circle at 50% 45%, rgba(55,15,0,0.88) 0%, rgba(6,1,0,0.97) 70%);
+  overflow:hidden;
+}
+/* Animated crumb particles via pseudo canvas-like divs, injected by JS */
+#overlay::before {
+  content:'🍪';
+  position:absolute; font-size:70px; opacity:0.035;
+  top:50%; left:50%; transform:translate(-50%,-58%) rotate(-12deg);
+  pointer-events:none; filter:blur(2px);
+}
+/* ── Card panel ── */
+#overlay > div {
+  position:relative; z-index:2;
+  display:flex; flex-direction:column; align-items:center; gap:14px;
+  /* frosted caramel glass */
+  background: linear-gradient(160deg, rgba(60,20,0,0.82) 0%, rgba(20,5,0,0.88) 100%);
+  border: 2px solid transparent;
+  border-radius: 24px;
+  padding: 30px 38px 26px;
+  box-shadow:
+    0 0 0 1px rgba(255,140,0,0.22),
+    0 0 32px rgba(255,80,0,0.22),
+    0 16px 48px rgba(0,0,0,0.7),
+    inset 0 1px 0 rgba(255,200,100,0.1);
+  animation: popIn 0.28s cubic-bezier(0.34,1.56,0.64,1) both;
+  /* baked border trick: gradient border */
+  background-clip: padding-box;
+  outline: 1.5px solid rgba(255,140,0,0.28);
+  min-width: 270px;
+}
+/* glowing top edge accent */
+#overlay > div::before {
+  content:''; position:absolute; top:-1px; left:18%; right:18%; height:2px;
+  background: linear-gradient(90deg, transparent, #ffcc02, #ff6b35, #ffcc02, transparent);
+  border-radius:99px; opacity:0.8;
+}
+
+/* ── Title ── */
+#overlay h1 {
+  font-size: 32px; font-weight: 900; letter-spacing: -0.5px;
+  color: #ffe0b2;
+  text-shadow: 0 0 18px #ff6b3599, 0 2px 0 rgba(0,0,0,0.5);
+  animation: titleWave 3.5s ease-in-out infinite;
+  margin-bottom: 2px;
+}
+/* ── Desc ── */
+#overlay p {
+  color:#ffb87a; font-size:13px; text-align:center; line-height:1.65;
+  opacity:0.9; max-width:240px;
+}
+
+/* ── Hint chip ── */
+.hint {
+  display:flex; align-items:center; gap:6px;
+  color:#ffe0b2; font-size:11.5px; font-weight:600; letter-spacing:0.2px;
+  background: rgba(255,107,53,0.1);
+  border: 1px solid rgba(255,140,53,0.3);
+  border-radius: 10px; padding: 7px 14px;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+}
+.hint::before { content:'🕹️'; font-size:14px; }
+
+/* ── Play button — the signature element ── */
+.btn-play {
+  position: relative; overflow: hidden;
+  padding: 0; width: 210px; height: 52px;
+  font-size: 18px; font-weight: 900; letter-spacing: 1px;
+  color: #fff;
+  background: linear-gradient(170deg, #ff8c00 0%, #ff4400 55%, #cc1a00 100%);
+  border: none; border-radius: 14px; cursor: pointer;
+  box-shadow:
+    0 5px 0 #7a1800,          /* pixel-style bottom shadow = 3D depth */
+    0 8px 24px rgba(255,60,0,0.45),
+    inset 0 1px 0 rgba(255,255,255,0.25);
+  touch-action: manipulation;
+  transition: transform 0.08s, box-shadow 0.08s;
+  /* ripple idle animation */
+  animation: rippleOut 2.2s ease-out infinite;
+}
+/* shine sweep */
+.btn-play::before {
+  content:''; position:absolute; inset:0;
+  background: linear-gradient(110deg, transparent 30%, rgba(255,255,255,0.32) 50%, transparent 70%);
+  animation: shine 2.6s ease-in-out infinite;
+}
+/* inner text with pixel-style notch */
+.btn-play::after {
+  content: attr(data-label);
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.4), 0 0 12px rgba(255,200,0,0.5);
+}
+.btn-play:active {
+  transform: translateY(4px);
+  box-shadow: 0 1px 0 #7a1800, 0 2px 10px rgba(255,60,0,0.35),
+              inset 0 1px 0 rgba(255,255,255,0.2);
+  animation: none;
+}
+.btn-play:hover:not(:active) { filter: brightness(1.08); }
+
+/* ── Lobby / secondary button ── */
+.btn-lobby {
+  position: relative;
+  padding: 9px 22px; font-size: 13px; font-weight: 700; letter-spacing: 0.3px;
+  color: #ffb87a;
+  background: rgba(255,100,30,0.1);
+  border: 1.5px solid rgba(255,120,40,0.35);
+  border-radius: 10px; cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, transform 0.1s, border-color 0.15s;
+}
+.btn-lobby::before { content:'←'; margin-right:6px; opacity:0.7; }
+.btn-lobby:hover   { background:rgba(255,100,30,0.22); border-color:rgba(255,140,60,0.6); transform:translateX(-2px); }
+.btn-lobby:active  { transform:scale(0.96) translateX(-1px); }
+
+/* ── Score card (dead screen) ── */
+.score-card {
+  display:flex; gap:0; overflow:hidden;
+  background: rgba(0,0,0,0.35);
+  border: 1px solid rgba(255,107,53,0.28);
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.score-card .col {
+  text-align:center; padding: 12px 22px;
+  position: relative;
+}
+.score-card .col + .col::before {
+  content:''; position:absolute; left:0; top:20%; bottom:20%;
+  width:1px; background:rgba(255,107,53,0.25);
+}
+.score-card .col .lbl {
+  font-size:10px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase;
+  color:#ff8a65; margin-bottom:4px;
+}
+.score-card .col .val {
+  font-size:30px; font-weight:900; line-height:1;
+  color:#ff6b35; text-shadow:0 0 16px rgba(255,107,53,0.6);
+}
+.score-card .col .val.gold {
+  color:#ffcc02; text-shadow:0 0 16px rgba(255,204,2,0.55);
+}
 </style>
 </head>
 <body>
@@ -173,27 +321,40 @@ document.addEventListener('dragstart',function(e){e.preventDefault();},false);
       <!-- slots สร้างโดย JS -->
     </div>
     <div id="overlay">
+
+      <!-- ── หน้าเริ่มต้น ── -->
       <div id="overlayIdle">
         <h1 id="overlayTitle">🍪 คุกกี้วิ่ง!</h1>
-        <p id="overlayDesc">กระโดดข้ามอุปสรรคและเก็บเจลลี่!</p>
-        <div class="hint">Space / ↑ / แตะ = กระโดด &nbsp;|&nbsp; กด 2 ครั้ง = กระโดดสูง</div>
-        <button class="btn-play" id="playBtn">▶ เริ่มวิ่ง!</button>
-        <button class="btn-lobby" id="lobbyBtn">← กลับหน้าหลัก</button>
+        <p id="overlayDesc">กระโดดข้ามอุปสรรคและเก็บเยลลี่ให้มากที่สุด!</p>
+        <div class="hint">แตะ / Space / ↑ กระโดด &nbsp;·&nbsp; กด 2 ครั้ง = สูงขึ้น</div>
+        <button class="btn-play" id="playBtn" data-label="▶  เริ่มวิ่ง!">▶  เริ่มวิ่ง!</button>
+        <button class="btn-lobby" id="lobbyBtn">กลับหน้าหลัก</button>
       </div>
+
+      <!-- ── หน้าตาย ── -->
       <div id="overlayDead" style="display:none">
-        <h1>😵 ล้มแล้ว!</h1>
+        <h1>😵 ล้มลงแล้ว!</h1>
         <div class="score-card">
-          <div class="col"><div class="lbl">คะแนน</div><div class="val" id="deadScore">0</div></div>
-          <div class="col"><div class="lbl">🏆 สูงสุด</div><div class="val gold" id="deadBest">0</div></div>
+          <div class="col">
+            <div class="lbl">คะแนน</div>
+            <div class="val" id="deadScore">0</div>
+          </div>
+          <div class="col">
+            <div class="lbl">สถิติสูงสุด</div>
+            <div class="val gold" id="deadBest">0</div>
+          </div>
         </div>
-        <button class="btn-play" id="playAgainBtn">🔄 เล่นอีกครั้ง!</button>
-        <button class="btn-lobby" id="lobbyBtn2">← เปลี่ยนตัวละคร/แมพ</button>
+        <button class="btn-play" id="playAgainBtn" data-label="🔄  เล่นอีกครั้ง!">🔄  เล่นอีกครั้ง!</button>
+        <button class="btn-lobby" id="lobbyBtn2">เปลี่ยนตัวละคร / แมพ</button>
       </div>
+
+      <!-- ── หน้า pause ── -->
       <div id="overlayPaused" style="display:none">
         <h1>⏸ หยุดชั่วคราว</h1>
-        <button class="btn-play" id="resumeBtn">▶ ดำเนินการต่อ</button>
-        <button class="btn-lobby" id="lobbyBtn3">← กลับหน้าล็อบบี้</button>
+        <button class="btn-play" id="resumeBtn" data-label="▶  เล่นต่อ">▶  เล่นต่อ</button>
+        <button class="btn-lobby" id="lobbyBtn3">กลับล็อบบี้</button>
       </div>
+
     </div>
   </div>
 </div>
@@ -627,7 +788,36 @@ function drawJel(j){if(j.done)return;ctx.save();ctx.globalAlpha=j.alpha||1;if(j.
 function drawPot(p){if(p.done)return;const px=p.x,py=p.y;ctx.fillStyle='#1a8cff';ctx.beginPath();ctx.moveTo(px,py-10);ctx.lineTo(px+8,py+10);ctx.lineTo(px-8,py+10);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(100,200,255,0.5)';ctx.beginPath();ctx.arc(px,py-6,3,0,Math.PI*2);ctx.fill();}
 function drawItem(it){if(it.done)return;const ix=it.x,iy=it.y;const bob2=Math.sin(frame*0.08+ix*0.1)*3;ctx.save();ctx.translate(ix,iy+bob2);const glowR=16+Math.sin(frame*0.12)*3;const itemGlowColors={hpLarge:'rgba(80,255,80,0.18)',hpSmall:'rgba(100,220,100,0.14)',fireball:'rgba(255,100,0,0.22)',magnet:'rgba(120,60,255,0.20)'};const glowCol=itemGlowColors[it.type]||'rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(0,0,glowR,0,Math.PI*2);ctx.fillStyle=glowCol;ctx.fill();switch(it.type){case 'hpLarge':ctx.fillStyle='#00c853';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-5,-2,10,4);ctx.fillRect(-2,-5,4,10);break;case 'hpSmall':ctx.fillStyle='#69f0ae';ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-4,-1.5,8,3);ctx.fillRect(-1.5,-4,3,8);break;case 'fireball':ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🔥',0,0);break;case 'magnet':ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🧲',0,0);break;}ctx.restore();}
 
-function updateOverlayDesc(){document.getElementById('overlayTitle').textContent='🍪 '+CHAR.name+' — '+MAP.name;document.getElementById('overlayDesc').textContent=(CHAR.bonus?bonusDesc(CHAR.bonus,CHAR.maxHp,SKILLS):'กระโดดข้ามอุปสรรคและเก็บเจลลี่!  |  ❤ '+CHAR.maxHp+' หน่วย');}
+function updateOverlayDesc(){document.getElementById('overlayTitle').textContent='🍪 '+CHAR.name+' — '+MAP.name;document.getElementById('overlayDesc').textContent=(CHAR.bonus?bonusDesc(CHAR.bonus,CHAR.maxHp,SKILLS):'กระโดดข้ามอุปสรรคและเก็บเยลลี่!  ❤ '+CHAR.maxHp+' หน่วย');}
+
+/* ── Floating jelly/crumb particles inside the overlay backdrop ── */
+(function initOverlayParticles(){
+  const ov=document.getElementById('overlay');
+  if(!ov||ov.__particlesInited)return;
+  ov.__particlesInited=true;
+  const EMOJIS=['🍪','🍬','🍭','⭐','🟡','🔴','🔵','🟣'];
+  const COUNT=12;
+  for(let i=0;i<COUNT;i++){
+    const el=document.createElement('span');
+    el.textContent=EMOJIS[i%EMOJIS.length];
+    const size=10+Math.random()*14;
+    const left=5+Math.random()*90;
+    const delay=-(Math.random()*6);
+    const dur=5+Math.random()*5;
+    el.style.cssText=[
+      'position:absolute',
+      'font-size:'+size+'px',
+      'left:'+left+'%',
+      'bottom:-20px',
+      'pointer-events:none',
+      'z-index:1',
+      'opacity:0',
+      'animation:crumbDrift '+dur+'s '+delay+'s linear infinite',
+      'filter:blur(0.4px) opacity(0.45)',
+    ].join(';');
+    ov.appendChild(el);
+  }
+})();
 
 
 // ── GAME LOOP ──
