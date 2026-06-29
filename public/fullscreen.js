@@ -3,10 +3,23 @@
 // ══════════════════════════════════════════════════════════
 
 function isCurrentlyFullscreen() {
-  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  // ตรวจสอบทั้ง Fullscreen API จริง และ PWA display-mode: fullscreen/standalone
+  // (PWA ที่ manifest ตั้ง "display": "fullscreen" จะไม่มี fullscreenElement
+  //  แต่จอมันเต็มอยู่แล้ว ไม่ต้องแสดงปุ่ม)
+  if (document.fullscreenElement || document.webkitFullscreenElement) return true;
+  if (window.matchMedia && (
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: standalone)').matches
+  )) return true;
+  return false;
 }
 
 function requestFs(el) {
+  // ถ้าเป็น PWA display-mode อยู่แล้ว ไม่ต้องขอ fullscreen ซ้ำ
+  if (window.matchMedia && (
+    window.matchMedia('(display-mode: fullscreen)').matches ||
+    window.matchMedia('(display-mode: standalone)').matches
+  )) return Promise.resolve();
   const target = el || document.documentElement;
   if (target.requestFullscreen) return target.requestFullscreen();
   if (target.webkitRequestFullscreen) return target.webkitRequestFullscreen();

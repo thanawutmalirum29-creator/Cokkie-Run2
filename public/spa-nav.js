@@ -38,7 +38,7 @@
     }
   }
 
-  function crNavigate(url, isReplace){
+  function crNavigate(url, isReplace, afterNav){
     fetch(url, {cache:'no-store'}).then(function(r){
       if(!r.ok) throw new Error('bad status '+r.status);
       return r.text();
@@ -48,26 +48,28 @@
       document.body.setAttribute('class', doc.body.getAttribute('class')||'');
       if(isReplace) history.replaceState({crUrl:url}, '', url);
       else history.pushState({crUrl:url}, '', url);
-      // เปลี่ยนหน้าแล้วต้องสลับ <style> ในหัวหน้าเว็บด้วย ไม่ใช่แค่ <body>
-      // เพราะ game.html / lobby.html แต่ละหน้ามี <style> ของตัวเอง
-      // (บั๊กเดิม: สลับแค่ body ทำให้ไปหน้าเกมแล้ว CSS ของหน้าเกมไม่ถูกโหลด
-      //  เลย์เอาท์พัง ปุ่ม/พื้นหลัง/overlay ทับกันมั่ว มองดูเหมือนจอแดงค้าง)
+      // สลับ <style> ใน <head> ตามหน้าใหม่ด้วย เพราะแต่ละหน้ามี CSS ของตัวเอง
       Array.prototype.slice.call(document.head.querySelectorAll('style')).forEach(function(el){ el.remove(); });
       Array.prototype.slice.call(doc.head.querySelectorAll('style')).forEach(function(el){ document.head.appendChild(el.cloneNode(true)); });
       document.body.innerHTML = doc.body.innerHTML;
       var scripts = Array.prototype.slice.call(doc.body.querySelectorAll('script'));
       runScriptsInOrder(scripts, 0, function(){
         window.scrollTo(0,0);
+        if(typeof afterNav === 'function') afterNav();
       });
     }).catch(function(err){
       console.warn('spa-nav fallback to full navigation:', err);
-      location.href = url; // เผื่อ fetch ล้มเหลว ก็ navigate ตามปกติ ไม่ทำให้พัง
+      location.href = url;
     });
   }
 
   window.crNavigate = crNavigate;
 
+  // บน Android กดปุ่ม Back จะ exit fullscreen ก่อน แล้วค่อย fire popstate
+  // หลังสลับหน้าแล้วให้ขอ fullscreen กลับคืนทันที (ถ้าฟังก์ชันพร้อมใช้)
   window.addEventListener('popstate', function(){
-    crNavigate(location.pathname + location.search, true);
+    crNavigate(location.pathname + location.search, true, function(){
+      if(typeof goFullscreenLandscape === 'function') goFullscreenLandscape();
+    });
   });
 })();
