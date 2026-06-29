@@ -368,8 +368,9 @@ let hp=CHAR.maxHp;
 let invincible=false,hpTimer=0;
 let bgFar=0,bgMid=0,bgCloud=0,bgFloor=0;
 const cookie={x:110,y:GROUND,vy:0,jumps:0,alive:true};
-let obs=[],obsTimer=0,obsInterval=95;
-let jels=[],jelTimer=0;
+let obs=[];
+let jels=[];
+let worldPlan=[],planIdx=0,worldDist=0;
 let pots=[];
 let items=[];
 let fireballActive=false,fireballFrames=0;
@@ -469,7 +470,7 @@ function reset(){
   score=0;frame=0;speed=MAP.speed;
   cookie.x=110;cookie.y=GROUND;cookie.vy=0;cookie.jumps=0;cookie.alive=true;
   obs=[];jels=[];pots=[];items=[];parts=[];floats.length=0;
-  obsTimer=0;jelTimer=0;obsInterval=MAP.obsInterval;
+  worldPlan=buildWorldPlanFromPattern(MAP_OBJ.id,MAP.speed,CHAR.maxHp);planIdx=0;worldDist=0;
   hp=CHAR.maxHp;hpTimer=0;invincible=false;
   jellyCount=0;hasRevived=false;skillTimer=0;dashing=false;dashFramesLeft=0;
   fireballActive=false;fireballFrames=0;magnetActive=false;magnetFrames=0;
@@ -535,6 +536,27 @@ document.getElementById('lobbyBtn3').addEventListener('click',showLobbyScreen);
 
 function burst(x,y,col,n=8){for(let i=0;i<n;i++)parts.push({x,y,col,vx:(Math.random()-0.5)*7,vy:-(Math.random()*5+2),life:1,r:3+Math.random()*4});}
 
+// ── ดึงของจากผังแมพ (worldPlan) ตามระยะทางที่วิ่งมาแล้วจริง ──
+// worldPlan ถูกสร้างจาก buildWorldPlanFromPattern() ตอน reset() ซึ่งวางเยลลี่เป็น
+// แถว/เป็นเส้นทางตามจังหวะกระโดดของแต่ละ tile ไว้แน่นอนแล้ว (ไม่ใช่สุ่มทีละลูก)
+// และวางไอเทม (heal/fireball/magnet) ไว้แค่ 1 จุดต่อ tile ที่กำหนด ไม่ใช่สุ่มอิสระ
+// จนมาเกิดทับกันเยอะแปลกๆแบบของเดิม
+function spawnFromPlan(){
+  worldDist+=speed;
+  while(planIdx<worldPlan.length&&worldPlan[planIdx].worldX-worldDist<=GW+20){
+    const p=worldPlan[planIdx];const sx=p.worldX-worldDist;
+    if(p.kind==='obs'){
+      obs.push({x:sx,y:p.y,w:p.w,h:p.h,type:p.type});
+    }else if(p.kind==='jel'){
+      const colors=['red','blue','green','yellow','purple'];
+      jels.push({x:sx,y:p.y,color:p.special?'yellow':colors[Math.floor(Math.random()*colors.length)],done:false,alpha:1,type:'normal',val:p.val||1,special:!!p.special});
+    }else if(p.kind==='item'){
+      items.push({x:sx,y:p.y,type:p.itemType,done:false});
+    }
+    planIdx++;
+  }
+}
+
 function drawBg(){
   const sky=ctx.createLinearGradient(0,0,0,GH);sky.addColorStop(0,MAP.sky[0]);sky.addColorStop(0.6,MAP.sky[1]);sky.addColorStop(1,MAP.sky[2]);ctx.fillStyle=sky;ctx.fillRect(0,0,GW,GH);
   drawMapScenery(MAP_OBJ.id,bgFar,bgMid);
@@ -563,7 +585,7 @@ function drawCookie(){
 // แล้ว (ใช้ร่วมกับ lobby.html) — ห้ามนิยามซ้ำที่นี่ เพราะสคริปต์นี้โหลดทีหลัง
 // map.js เสมอ จะทับฟังก์ชันที่ถูกต้องแบบเงียบๆ (ของเดิมเคยมีบั๊กแบบนี้)
 
-function drawJel(j){if(j.done)return;ctx.save();ctx.globalAlpha=j.alpha||1;if(j.type==='bear'){const bx=j.x,by=j.y;ctx.fillStyle='#ffcc02';ctx.beginPath();ctx.ellipse(bx,by,8,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e6a800';ctx.beginPath();ctx.ellipse(bx-5,by-7,4,3.5,-.4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(bx+5,by-7,4,3.5,.4,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(0,0,0,0.6)';ctx.beginPath();ctx.arc(bx-2.5,by-2,1.2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(bx+2.5,by-2,1.2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(bx,by+2,2.2,.1,Math.PI-.1);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.ellipse(bx-2,by-4,2,3,-.3,0,Math.PI*2);ctx.fill();}else{const cols={red:['#ff4444','#cc0000','#ff8888'],blue:['#4488ff','#0044cc','#88aaff'],green:['#44cc44','#007700','#88ff88'],yellow:['#ffdd00','#cc8800','#ffee88'],purple:['#cc44ff','#6600cc','#dd88ff']};const c2=cols[j.color]||cols.red;const jx=j.x,jy=j.y,jr=7;const jg=ctx.createRadialGradient(jx-2,jy-2,1,jx,jy,jr+2);jg.addColorStop(0,c2[2]);jg.addColorStop(0.5,c2[0]);jg.addColorStop(1,c2[1]);ctx.fillStyle=jg;ctx.beginPath();ctx.ellipse(jx,jy,jr,jr+2,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.ellipse(jx-2,jy-3,3,4.5,-.4,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.25)';ctx.beginPath();ctx.ellipse(jx+3,jy-1,1.5,2,-.3,0,Math.PI*2);ctx.fill();}ctx.restore();}
+function drawJel(j){if(j.done)return;ctx.save();ctx.globalAlpha=j.alpha||1;if(j.type==='bear'){const bx=j.x,by=j.y;ctx.fillStyle='#ffcc02';ctx.beginPath();ctx.ellipse(bx,by,8,9,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='#e6a800';ctx.beginPath();ctx.ellipse(bx-5,by-7,4,3.5,-.4,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.ellipse(bx+5,by-7,4,3.5,.4,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(0,0,0,0.6)';ctx.beginPath();ctx.arc(bx-2.5,by-2,1.2,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(bx+2.5,by-2,1.2,0,Math.PI*2);ctx.fill();ctx.strokeStyle='rgba(0,0,0,0.5)';ctx.lineWidth=1.2;ctx.beginPath();ctx.arc(bx,by+2,2.2,.1,Math.PI-.1);ctx.stroke();ctx.fillStyle='rgba(255,255,255,0.35)';ctx.beginPath();ctx.ellipse(bx-2,by-4,2,3,-.3,0,Math.PI*2);ctx.fill();}else{const cols={red:['#ff4444','#cc0000','#ff8888'],blue:['#4488ff','#0044cc','#88aaff'],green:['#44cc44','#007700','#88ff88'],yellow:['#ffdd00','#cc8800','#ffee88'],purple:['#cc44ff','#6600cc','#dd88ff']};const c2=cols[j.color]||cols.red;const jx=j.x,jy=j.y,jr=j.special?10:7;const jg=ctx.createRadialGradient(jx-2,jy-2,1,jx,jy,jr+2);jg.addColorStop(0,c2[2]);jg.addColorStop(0.5,c2[0]);jg.addColorStop(1,c2[1]);ctx.fillStyle=jg;ctx.beginPath();ctx.ellipse(jx,jy,jr,jr+2,0,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.55)';ctx.beginPath();ctx.ellipse(jx-2,jy-3,3,4.5,-.4,0,Math.PI*2);ctx.fill();ctx.fillStyle='rgba(255,255,255,0.25)';ctx.beginPath();ctx.ellipse(jx+3,jy-1,1.5,2,-.3,0,Math.PI*2);ctx.fill();if(j.special){ctx.strokeStyle='rgba(255,255,255,0.85)';ctx.lineWidth=1.2;for(let a=0;a<4;a++){const ang=frame*0.06+a*Math.PI/2;ctx.beginPath();ctx.moveTo(jx+Math.cos(ang)*(jr+3),jy+Math.sin(ang)*(jr+3));ctx.lineTo(jx+Math.cos(ang)*(jr+7),jy+Math.sin(ang)*(jr+7));ctx.stroke();}}}ctx.restore();}
 function drawPot(p){if(p.done)return;const px=p.x,py=p.y;ctx.fillStyle='#1a8cff';ctx.beginPath();ctx.moveTo(px,py-10);ctx.lineTo(px+8,py+10);ctx.lineTo(px-8,py+10);ctx.closePath();ctx.fill();ctx.fillStyle='rgba(100,200,255,0.5)';ctx.beginPath();ctx.arc(px,py-6,3,0,Math.PI*2);ctx.fill();}
 function drawItem(it){if(it.done)return;const ix=it.x,iy=it.y;const bob2=Math.sin(frame*0.08+ix*0.1)*3;ctx.save();ctx.translate(ix,iy+bob2);const glowR=16+Math.sin(frame*0.12)*3;const itemGlowColors={hpLarge:'rgba(80,255,80,0.18)',hpSmall:'rgba(100,220,100,0.14)',fireball:'rgba(255,100,0,0.22)',magnet:'rgba(120,60,255,0.20)'};const glowCol=itemGlowColors[it.type]||'rgba(255,255,255,0.15)';ctx.beginPath();ctx.arc(0,0,glowR,0,Math.PI*2);ctx.fillStyle=glowCol;ctx.fill();switch(it.type){case 'hpLarge':ctx.fillStyle='#00c853';ctx.beginPath();ctx.arc(0,0,9,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-5,-2,10,4);ctx.fillRect(-2,-5,4,10);break;case 'hpSmall':ctx.fillStyle='#69f0ae';ctx.beginPath();ctx.arc(0,0,7,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-4,-1.5,8,3);ctx.fillRect(-1.5,-4,3,8);break;case 'fireball':ctx.font='20px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🔥',0,0);break;case 'magnet':ctx.font='18px serif';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('🧲',0,0);break;}ctx.restore();}
 
@@ -593,27 +615,39 @@ function loop(){
   if(magnetActive){magnetFrames--;if(magnetFrames<=0)magnetActive=false;}
   bgFar+=speed*0.18;bgMid+=speed*0.32;bgCloud+=speed*0.05;bgFloor+=speed;
 
+  // ดึงของจากผังแมพตามระยะทางที่วิ่งมาแล้ว (obstacle/เยลลี่/ไอเทมที่ออกแบบตำแหน่งไว้)
+  spawnFromPlan();
+
   // obstacles
-  obsTimer++;if(obsTimer>=obsInterval){obsTimer=0;obsInterval=MAP.obsInterval+Math.floor(Math.random()*20)-10;const h=40+Math.floor(Math.random()*40),w=22+Math.floor(Math.random()*16);obs.push({x:GW+20,y:GROUND-h,w,h,vy:0});}
   obs.forEach(ob=>{ob.x-=speed;});obs=obs.filter(ob=>ob.x>-60);
 
-  // jellies
-  jelTimer++;if(jelTimer>=(30-Math.min(20,Math.floor(score/500)))){jelTimer=0;const colors=['red','blue','green','yellow','purple'];const jy=GROUND-15-Math.random()*120;jels.push({x:GW+10,y:jy,color:colors[Math.floor(Math.random()*colors.length)],done:false,alpha:1,type:'normal'});if(CHAR.bonus==='yellowJelly'){const cfg=SKILLS.yellowJelly||SKILLS_FALLBACK.yellowJelly;if(jellyCount>0&&jellyCount%(cfg.spawnEvery||25)===0)jels.push({x:GW+10,y:jy-30,color:'yellow',done:false,alpha:1,type:'bear'});}}
-  jels.forEach(j=>{j.x-=speed*0.9;if(magnetActive&&!j.done){const dx=cookie.x+CW/2-j.x,dy=cookie.y-CH/2-j.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<MAGNET_RADIUS){j.x+=dx*0.08;j.y+=dy*0.08;}}});
+  // jellies — เลื่อนด้วยความเร็วเท่า obstacle เป๊ะๆ ไม่งั้นแนวเยลลี่ที่ออกแบบให้
+  // ตรงกับจังหวะกระโดดข้ามอุปสรรคพอดีจะค่อยๆเหลื่อมจากอุปสรรคเมื่อเลื่อนจอ
+  jels.forEach(j=>{j.x-=speed;if(magnetActive&&!j.done){const dx=cookie.x+CW/2-j.x,dy=cookie.y-CH/2-j.y,dist=Math.sqrt(dx*dx+dy*dy);if(dist<MAGNET_RADIUS){j.x+=dx*0.08;j.y+=dy*0.08;}}});
   jels=jels.filter(j=>j.x>-20&&!j.done);
 
-  // potions
+  // potions — ความสามารถพิเศษของบลูเบอร์รี่ เกิดแบบสุ่ม ไม่ใช่ส่วนหนึ่งของผังแมพ
   if(CHAR.bonus==='healPotion'){const cfg=SKILLS.healPotion||SKILLS_FALLBACK.healPotion;if(Math.random()<(1/(cfg.spawnRate||180)))pots.push({x:GW+10,y:GROUND-80-Math.random()*80,done:false});}
   pots.forEach(p=>{p.x-=speed*0.85;});pots=pots.filter(p=>p.x>-20&&!p.done);
 
-  // random items
-  if(Math.random()<(1/300)){const types=['hpLarge','hpSmall','fireball','magnet'];const t=types[Math.floor(Math.random()*types.length)];items.push({x:GW+10,y:GROUND-60-Math.random()*120,type:t,done:false});}
-  items.forEach(it=>{it.x-=speed*0.85;});items=items.filter(it=>it.x>-20&&!it.done);
+  // items — มาจากผังแมพแล้ว (tile heal/fireball/magnet) ไม่ต้องสุ่มซ้อนอีกชั้น
+  items.forEach(it=>{it.x-=speed;});items=items.filter(it=>it.x>-20&&!it.done);
 
-  // collision — obstacles
-  obs.forEach(ob=>{if(ob.x+ob.w>cLeft()+6&&ob.x<cRight()-6&&GROUND-ob.h<cBot()-4&&cTop()+8<GROUND){if(!fireballActive)takeDamage();else{burst(ob.x+ob.w/2,GROUND-ob.h/2,'#ff6d00',10);ob.x=-999;}}});
+  // collision — obstacles (ใช้ ob.y ตรงๆ รองรับทั้งอุปสรรคพื้นและอุปสรรคลอยกลางอากาศ)
+  obs.forEach(ob=>{if(ob.x+ob.w>cLeft()+6&&ob.x<cRight()-6&&ob.y<cBot()-4&&cTop()+8<ob.y+ob.h){if(!fireballActive)takeDamage();else{burst(ob.x+ob.w/2,ob.y+ob.h/2,'#ff6d00',10);ob.x=-999;}}});
   // collision — jellies
-  jels.forEach(j=>{if(!j.done&&Math.abs(j.x-(cookie.x+CW/2))<18&&Math.abs(j.y-(cookie.y-CH/2))<20){j.done=true;const jbCfg=SKILLS.jellyBonus||SKILLS_FALLBACK.jellyBonus;const yjCfg=SKILLS.yellowJelly||SKILLS_FALLBACK.yellowJelly;const pts=1+(CHAR.bonus==='jellyBonus'?(jbCfg.bonusPoints||5):0)+(j.type==='bear'?(yjCfg.bonusScore||5):0)+getTreasureJellyBonus();score+=pts;jellyCount++;best=Math.max(best,score);document.getElementById('sc').textContent=Math.floor(score);document.getElementById('hi').textContent=Math.floor(best);addFloat(j.x,j.y-10,'+'+pts,'#ffee44');burst(j.x,j.y,'#ffcc02',5);}});
+  jels.forEach(j=>{if(!j.done&&Math.abs(j.x-(cookie.x+CW/2))<18&&Math.abs(j.y-(cookie.y-CH/2))<20){
+    j.done=true;
+    const jbCfg=SKILLS.jellyBonus||SKILLS_FALLBACK.jellyBonus;const yjCfg=SKILLS.yellowJelly||SKILLS_FALLBACK.yellowJelly;
+    const pts=(j.val||1)+(CHAR.bonus==='jellyBonus'?(jbCfg.bonusPoints||5):0)+(j.type==='bear'?(yjCfg.bonusScore||5):0)+getTreasureJellyBonus();
+    score+=pts;jellyCount++;best=Math.max(best,score);
+    document.getElementById('sc').textContent=Math.floor(score);document.getElementById('hi').textContent=Math.floor(best);
+    addFloat(j.x,j.y-10,'+'+pts,'#ffee44');burst(j.x,j.y,'#ffcc02',5);
+    // strawberry: เก็บเยลลี่ครบทุก N ลูก เกิดเยลลี่หมีโบนัสลอยไว้ข้างหน้า
+    if(CHAR.bonus==='yellowJelly'&&jellyCount%(yjCfg.spawnEvery||25)===0){
+      jels.push({x:GW+10,y:cookie.y-CH-40-Math.random()*30,color:'yellow',done:false,alpha:1,type:'bear',val:1});
+    }
+  }});
   // collision — potions
   pots.forEach(p=>{if(!p.done&&Math.abs(p.x-(cookie.x+CW/2))<18&&Math.abs(p.y-(cookie.y-CH/2))<20){p.done=true;const cfg=SKILLS.healPotion||SKILLS_FALLBACK.healPotion;hp=Math.min(CHAR.maxHp,hp+(cfg.healAmount||15));renderHpBar();hpBarInner.classList.add('heal');setTimeout(()=>hpBarInner.classList.remove('heal'),400);addFloat(p.x,p.y-10,'+HP 💧','#69f0ae');burst(p.x,p.y,'#69f0ae',6);}});
   // collision — items
