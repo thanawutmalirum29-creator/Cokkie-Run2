@@ -8,7 +8,8 @@
 const CACHE_NAME = 'cookie-run-__APP_VERSION__';
 const ASSETS = [
   '/',
-  '/index.html',
+  '/lobby',
+  '/game',
   '/gameData.js',
   '/map.js',
   '/fullscreen.js',

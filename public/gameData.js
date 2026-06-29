@@ -89,11 +89,11 @@ const TREASURES = [
 
 // ค่าสำรอง (ใช้ตอนยังโหลด /api/skills ไม่เสร็จ หรือเซิฟเวอร์เรียกไม่ติด)
 const SKILLS_FALLBACK = {
-  yellowJelly: { cooldownSec: 5,  jellyScore: 300 },
+  yellowJelly: { spawnEvery: 25, bonusScore: 5 },
   revive:      { reviveHp: 20, hpPerJellies: 1, jelliesPerBonus: 500 },
   dash:        { cooldownSec: 15, durationSec: 4, speedMult: 1.8 },
-  jellyBonus:  { bonus: 1 },
-  healPotion:  { cooldownSec: 25, healAmount: 3 },
+  jellyBonus:  { bonusPoints: 5 },
+  healPotion:  { spawnRate: 180, healAmount: 3 },
 };
 
 async function fetchSkills() {
@@ -125,11 +125,11 @@ async function fetchSkills() {
 function bonusDesc(b, maxHp, skills) {
   const s = (skills || SKILLS_FALLBACK)[b] || SKILLS_FALLBACK[b] || {};
   const base = ({
-    yellowJelly: `ความสามารถพิเศษ: ผลิตเยลลี่หมีเหลืองด้านหน้าทุก ${s.cooldownSec} วิ (ให้ ${s.jellyScore} แต้ม)!`,
+    yellowJelly: `ความสามารถพิเศษ: เก็บเยลลี่ครบทุก ${s.spawnEvery} ลูก จะมีเยลลี่หมีโบนัสโผล่มาให้ (+${s.bonusScore} แต้ม)!`,
     revive:      `ความสามารถพิเศษ: ตายแล้วฟื้นคืนชีพ! เลือด ${s.reviveHp} หน่วย (+${s.hpPerJellies} ต่อ ${s.jelliesPerBonus} เยลลี่ที่เก็บได้)`,
     dash:        `ความสามารถพิเศษ: พุ่งไปข้างหน้า + อมตะ ${s.durationSec} วิ ทุกๆ ${s.cooldownSec} วิ!`,
-    jellyBonus:  `ความสามารถพิเศษ: เก็บเยลลี่ได้คะแนนเพิ่ม +${s.bonus} แต้มต่อลูก!`,
-    healPotion:  `ความสามารถพิเศษ: ผลิตน้ำยาฮีลทุก ${s.cooldownSec} วิ (ฮีล ${s.healAmount} หน่วย)`,
+    jellyBonus:  `ความสามารถพิเศษ: เก็บเยลลี่ได้คะแนนเพิ่ม +${s.bonusPoints} แต้มต่อลูก!`,
+    healPotion:  `ความสามารถพิเศษ: มีโอกาสผลิตน้ำยาฮีลขึ้นมาเป็นระยะ (ฮีล ${s.healAmount} หน่วยต่อขวด)`,
   })[b] || '';
   return base + (maxHp ? `  |  ❤ ${maxHp} หน่วย` : '');
 }
