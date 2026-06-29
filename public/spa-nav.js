@@ -8,9 +8,16 @@
   window.__crNavInit = true;
 
   // เก็บ src ของสคริปต์ที่โหลดไปแล้ว กันโหลดซ้ำ/ประกาศตัวแปรซ้ำ
+  // map.js และ gameData.js ต้องโหลดใหม่ทุกครั้ง เพราะมันอ้างอิง ctx/canvas
+  // ของหน้าปัจจุบัน — ถ้า cache ข้ามหน้าจะชี้ไป canvas เก่าที่ถูก replace ไปแล้ว
+  var _crNoCache = ['map.js', 'gameData.js'];
   window.__crLoadedScripts = window.__crLoadedScripts || new Set();
   Array.prototype.forEach.call(document.querySelectorAll('script[src]'), function(s){
-    try{ window.__crLoadedScripts.add(new URL(s.src, location.href).href); }catch(e){}
+    try{
+      var abs = new URL(s.src, location.href).href;
+      var noCache = _crNoCache.some(function(n){ return abs.indexOf(n) !== -1; });
+      if(!noCache) window.__crLoadedScripts.add(abs);
+    }catch(e){}
   });
 
   function runScriptsInOrder(scripts, i, done){
