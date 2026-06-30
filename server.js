@@ -6,7 +6,7 @@ const { Pool } = require('pg'); // npm install pg
 const app = express();
 app.use(express.json());
 const PORT = process.env.PORT || 3000;
-const APP_VERSION = 'v0.1.8';
+const APP_VERSION = 'v0.2.2';
 
 
 // ══════════════════════════════════════════════════════════
