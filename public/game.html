@@ -371,32 +371,27 @@ document.addEventListener('dragstart',function(e){e.preventDefault();},false);
 
 <script>
 (function(){
-  function isPortrait(){return screen.orientation?screen.orientation.type.startsWith('portrait'):window.innerHeight>window.innerWidth;}
-  function load(){
-    // map.js และ gameData.js ต้องโหลดใหม่ทุกครั้งที่เข้าหน้าเกม
-    // เพราะฟังก์ชันใน map.js อ้างอิง ctx/canvas ของหน้านี้ ถ้าใช้ cache จาก lobby
-    // จะชี้ไปที่ canvas เก่าที่ถูก replace ไปแล้ว → drawJel/drawObs/วาดแมพไม่ออก
-    var ALWAYS_RELOAD = new Set(['gameData.js','map.js']);
-    ['gameData.js','fullscreen.js','map.js'].reduce(function(p,src){
-      return p.then(function(){return new Promise(function(res){
-        var abs;try{abs=new URL(src,location.href).href;}catch(e){abs=src;}
-        var forceReload=ALWAYS_RELOAD.has(src);
-        if(!forceReload&&window.__crLoadedScripts&&window.__crLoadedScripts.has(abs)){res();return;}
-        // ลบออกจาก cache ก่อน เพื่อให้ spa-nav โหลดซ้ำได้ถ้าถูกเรียกจากทางอื่น
-        if(window.__crLoadedScripts)window.__crLoadedScripts.delete(abs);
-        var s=document.createElement('script');s.src=src;s.onload=function(){if(window.__crLoadedScripts)window.__crLoadedScripts.add(abs);res();};document.body.appendChild(s);
-      });});
-    },Promise.resolve()).then(function(){
-      var raw=document.getElementById('_gameScript').textContent;
-      var s=document.createElement('script');s.textContent='(function(){\n'+raw+'\n})();';document.body.appendChild(s);
-    });
-  }
-  if(!isPortrait()){load();}
-  else{
-    function oc(){setTimeout(function(){if(!isPortrait()){window.removeEventListener('orientationchange',oc);if(screen.orientation)screen.orientation.removeEventListener('change',oc);load();}},300);}
-    window.addEventListener('orientationchange',oc);
-    if(screen.orientation)screen.orientation.addEventListener('change',oc);
-  }
+  // โหลด dependencies (gameData.js, fullscreen.js, map.js) ตามลำดับแล้วรัน _gameScript
+  // *** ไม่ตรวจ portrait ที่นี่ *** เพราะ:
+  //   1) เมื่อ spa-nav เปลี่ยนหน้าแบบ no-reload, screen.orientation อาจยัง
+  //      รายงาน portrait ชั่วคราวระหว่าง DOM swap → load() จะไม่ถูกเรียกเลย
+  //   2) การ lock landscape/fullscreen จัดการโดย fullscreen.js + CSS แยกต่างหากอยู่แล้ว
+  var ALWAYS_RELOAD = new Set(['gameData.js','map.js']);
+  ['gameData.js','fullscreen.js','map.js'].reduce(function(p,src){
+    return p.then(function(){return new Promise(function(res){
+      var abs;try{abs=new URL(src,location.href).href;}catch(e){abs=src;}
+      var forceReload=ALWAYS_RELOAD.has(src);
+      if(!forceReload&&window.__crLoadedScripts&&window.__crLoadedScripts.has(abs)){res();return;}
+      if(window.__crLoadedScripts)window.__crLoadedScripts.delete(abs);
+      var s=document.createElement('script');s.src=src;
+      s.onload=function(){if(window.__crLoadedScripts)window.__crLoadedScripts.add(abs);res();};
+      s.onerror=function(){res();};
+      document.body.appendChild(s);
+    });});
+  },Promise.resolve()).then(function(){
+    var raw=document.getElementById('_gameScript').textContent;
+    var s=document.createElement('script');s.textContent='(function(){\n'+raw+'\n})();';document.body.appendChild(s);
+  });
 })();
 </script>
 
